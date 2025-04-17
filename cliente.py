@@ -1,7 +1,9 @@
+# Aluno: Andre Silveira Sousa RA: 628239
+
 import socket
 
 HOST = '127.0.1.1'              # Endereco IP do Servidor
-PORT = 9999                      # Porta que o Servidor esta
+PORT = 9999                     # Porta que o Servidor esta
 
 tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #cria um socket p/ internet via TCP
 endereco = (HOST, PORT)

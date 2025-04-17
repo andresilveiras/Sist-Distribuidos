@@ -1,3 +1,5 @@
+# Aluno: Andre Silveira Sousa RA: 628239
+
 import socket
 
 hostname = socket.gethostname()
@@ -21,5 +23,6 @@ while True:
         msg = conexao.recv(1024)
         if not msg: break
         print(nick.decode(), " enviou a mensagem: ", msg.decode())
-    print("Finalizando conexao do cliente " , cliente)
+    print (nick.decode(), "desconectou-se.")
+    print("A conexao do cliente " , cliente, "foi encerrada.")
     conexao.close()
