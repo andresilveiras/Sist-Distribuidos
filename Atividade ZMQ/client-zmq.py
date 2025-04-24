@@ -14,12 +14,11 @@ print("00 encerra o chat.")
 
 msg = input("Digite seu apelido: ")
 
-while msg != '00':
+while msg != "00":
     socket.send(msg.encode())  
     resp = socket.recv()
-    
     msg = input("Mensagem: ")
-
+socket.send(msg.encode())
 socket.close()
 
 print("Conexao fechada.")
