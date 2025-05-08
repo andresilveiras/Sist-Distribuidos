@@ -14,7 +14,6 @@ while True:
     msg = "hello world"
 
     while True:
-        print("Digite 00 para encerrar")
         topic = input("Digite o tópico: ")
         msg = input("Envie mensagem para o tópico informado: ")
         socket.send_string(f"{topic} {msg}")
