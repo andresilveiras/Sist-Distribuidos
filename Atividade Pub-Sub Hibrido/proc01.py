@@ -5,7 +5,7 @@ import sys
 
 def receive_messages():
     sub_socket = context.socket(zmq.SUB)
-    sub_socket.connect("tcp://localhost:5560")  # Broker's XPUB
+    sub_socket.connect("tcp://localhost:5560")  # Porta XPUB) do broker
     sub_socket.setsockopt_string(zmq.SUBSCRIBE, "Mensagem")
 
     while True:
@@ -14,7 +14,7 @@ def receive_messages():
 
 def send_messages(identity):
     pub_socket = context.socket(zmq.PUB)
-    pub_socket.connect("tcp://localhost:5559")  # Broker's XSUB
+    pub_socket.connect("tcp://localhost:5559")  # Porta XSUB do broker
 
     time.sleep(1)  # Aguarda conexão
     print(f"Olá {identity}!\nDigite uma mensagem para conversar!")
@@ -26,6 +26,8 @@ def send_messages(identity):
         #print(f"[ENVIADO] {mensagem}")
         time.sleep(1)
 
+# Identity é a identificação do usuario, nome adicionado no argumento da execução
+# Execução no terminal: python3 proc01.py MeuNome
 context = zmq.Context()
 identity = sys.argv[1] if len(sys.argv) > 1 else "Anon"
 
