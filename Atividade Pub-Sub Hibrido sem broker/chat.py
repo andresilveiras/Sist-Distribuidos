@@ -23,6 +23,7 @@ def send_messages(context, identity, peer_ports):
     print(f"Olá {identity}!\nDigite uma mensagem para conversar!")
 
     while True:
+        print("Sua mensagem: ")
         msg = input()
         mensagem = f"Mensagem de {identity}: {msg}"
         pub_socket.send_string(mensagem)
@@ -31,14 +32,14 @@ def send_messages(context, identity, peer_ports):
 # ========== PARÂMETROS ==========
 
 # Execução esperada:
-# python3 chat_sem_broker.py Nome 6000 6001 6002
+# python3 chat.py Nome 6000 6001 6002
 # Onde:
-# - Nome é o nome do usuário
+# - Nome é o nome (nickname) do usuário
 # - 6000 é a porta local de escuta
 # - 6001, 6002... são portas de outros peers
 
 if len(sys.argv) < 3:
-    print("Uso: python3 chat_sem_broker.py <Nome> <PortaLocal> <PortaPeer1> [PortaPeer2] ...")
+    print("Uso: python3 chat.py <Nome> <PortaLocal> <PortaPeer1> [PortaPeer2] ...")
     sys.exit(1)
 
 identity = sys.argv[1]
