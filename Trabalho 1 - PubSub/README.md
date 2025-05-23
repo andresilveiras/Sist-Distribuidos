@@ -91,7 +91,7 @@ Para descobrir seu IP local:
 hostname -I
 ```
 
-Para testar se a máquina B enxerga a A:
+Para verificar se a máquina B consegue se comunicar com a A:
 
 ```bash
 ping 192.168.0.10
