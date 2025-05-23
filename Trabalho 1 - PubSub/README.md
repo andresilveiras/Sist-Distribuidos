@@ -41,27 +41,36 @@ pip install pyzmq sounddevice numpy prompt_toolkit
 
 ## ▶️ Como Executar
 
-### Terminal 1 (Usuário A)
+### Execução padrão:
+
+```bash
+python3 main.py <Nickname> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ..."
+```
+
+Onde:
+
+- **Nickname**: É o nome de exibição do usuário host no chat. Ex: `Bob`
+- **PortaLocal**: É a porta que será utilizada no host local para a comunicação. Ex: `6000`
+- **Peer1**: Endereço de IP na rede local do usuário 1 (o outro usuário ao qual o host irá se comunicar). Ex: `192.168.0.10`
+- **Porta**: Porta de comunicação TCP para o IP atribuído. Ex: `6001`
+
+O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
+
+### Exemplo: Terminal 1 (Usuário A)
 
 ```bash
 python3 main.py Alice 6000 192.168.0.11:6001
 ```
 
-### Terminal 2 (Usuário B)
+### Exemplo: Terminal 2 (Usuário B)
 
 ```bash
 python3 main.py Bob 6001 192.168.0.10:6000
 ```
 
-> Neste exemplo, `192.168.0.10` é o endereço de IP na rede local da máquina do usuário A, e `192.168.0.11` é o endereço de IP na rede local da máquina do usuário B. É necessário substituir pelo IP real das máquinas.
+> Neste exemplo, `192.168.0.10` é o endereço de IP na rede local da máquina do usuário A, e `192.168.0.11` é o endereço de IP na rede local da máquina do usuário B. 
 
-- É possível localizar os endereços de IP com o comando `hostname -I`. 
-
-- É necessário que todas as máquinas estejam na mesma rede.
-
-- É possível conectar mais de 2 peers.
-
-- O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
+É possível localizar os endereços de IP com o comando `hostname -I`. 
 
 ---
 
