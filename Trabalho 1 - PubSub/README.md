@@ -53,9 +53,11 @@ python3 main.py Alice 6000 192.168.0.11:6001
 python3 main.py Bob 6001 192.168.0.10:6000
 ```
 
-> Observe que neste exemplo, `192.168.0.10` é o endereço de IP na rede local da máquina do usuário A, e `192.168.0.11` é o endereço de IP na rede local da máquina do usuário B. É necessário substituir pelo IP real das máquinas.
+> Neste exemplo, `192.168.0.10` é o endereço de IP na rede local da máquina do usuário A, e `192.168.0.11` é o endereço de IP na rede local da máquina do usuário B. É necessário substituir pelo IP real das máquinas.
 
-> É possível localizar os endereços de IP com o comando `hostname -I`
+É possível localizar os endereços de IP com o comando `hostname -I`. 
+É necessário que todas as máquinas estejam na mesma rede.
+É possível conectar mais de 2 peers.
 
 O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
 
