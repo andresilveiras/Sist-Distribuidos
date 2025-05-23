@@ -7,9 +7,9 @@ Este projeto implementa um sistema de comunicação ponto-a-ponto com suporte a 
 ## 📁 Estrutura dos Arquivos
 
 ```
-seu_projeto/
+Trabalho 1 - PubSub/
 ├── main.py          # Script principal que executa o chat completo
-├── messaging.py     # Módulo com funções de envio/recepção de texto
+├── texto.py         # Módulo com funções de envio/recepção de texto
 ├── audio.py         # Módulo com funções de envio/recepção de áudio
 ├── utils.py         # Módulo para tratar argumentos da linha de comando
 └── README.md        # Este arquivo
