@@ -44,7 +44,7 @@ pip install pyzmq sounddevice numpy prompt_toolkit
 ### Terminal 1 (Usuário A)
 
 ```bash
-python3 main.py Alice 6000
+python3 main.py Alice 6000 192.168.0.11:6001
 ```
 
 ### Terminal 2 (Usuário B)
@@ -53,7 +53,9 @@ python3 main.py Alice 6000
 python3 main.py Bob 6001 192.168.0.10:6000
 ```
 
-> Substitua `192.168.0.10` pelo IP local da máquina do usuário A (ver com `hostname -I`)
+> Observe que neste exemplo, `192.168.0.10` é o endereço de IP na rede local da máquina do usuário A, e `192.168.0.11` é o endereço de IP na rede local da máquina do usuário B. É necessário substituir pelo IP real das máquinas.
+
+> É possível localizar os endereços de IP com o comando `hostname -I`
 
 O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
 
