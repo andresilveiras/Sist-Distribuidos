@@ -83,9 +83,12 @@ def send_audio(context, peer_audio_endpoints):
         while True:
             time.sleep(0.1)
 
-'''
-Função principal
-'''
+
+# ========== PARÂMETROS ==========
+
+# Execução esperada:
+# python3 chat_audio.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...
+
 
 if len(sys.argv) < 3:
     print("Uso: python3 chat_audio.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...")
