@@ -3,53 +3,69 @@ import threading
 import time
 import sys
 
+'''
+Função: receive_messages
+Recebe as mensagens de texto do tópico "Chat_Texto"
+'''
+
 def receive_messages(context, listen_port):
     sub_socket = context.socket(zmq.SUB)
-    sub_socket.bind(f"tcp://*:{listen_port}")
-    sub_socket.setsockopt_string(zmq.SUBSCRIBE, "Mensagem")
+    sub_socket.bind(f"tcp://0.0.0.0:{listen_port}")
+    sub_socket.setsockopt_string(zmq.SUBSCRIBE, "Chat_Texto")
 
     while True:
         msg = sub_socket.recv_string()
         print(msg)
 
-def send_messages(context, identity, peer_ports):
+'''
+Função: send_messages
+Envia as mensagens de texto para todos os peers inscritos no tópico "Chat_Texto"
+'''
+
+def send_messages(context, identity, peer_endpoints):
     pub_socket = context.socket(zmq.PUB)
 
-    # Conectando aos peers
-    for port in peer_ports:
-        pub_socket.connect(f"tcp://localhost:{port}")
+    for endpoint in peer_endpoints:
+        pub_socket.connect(f"tcp://{endpoint}")
 
-    time.sleep(1)  # Tempo para estabilizar conexões
+    time.sleep(1)
     print(f"Olá {identity}!\nDigite uma mensagem para conversar!")
 
     while True:
-        print("Sua mensagem: ")
         msg = input()
-        mensagem = f"Mensagem de {identity}: {msg}"
+        topic = "Chat_Texto"
+        mensagem = f"{topic} {identity}: {msg}"
         pub_socket.send_string(mensagem)
         time.sleep(0.5)
+
 
 # ========== PARÂMETROS ==========
 
 # Execução esperada:
-# python3 chat.py Nome 6000 6001 6002
-# Onde:
-# - Nome é o nome (nickname) do usuário
-# - 6000 é a porta local de escuta
-# - 6001, 6002... são portas de outros peers
+# python3 chat.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...
+
 
 if len(sys.argv) < 3:
-    print("Uso: python3 chat.py <Nome> <PortaLocal> <PortaPeer1> [PortaPeer2] ...")
+    print("Uso: python3 chat.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...")
     sys.exit(1)
 
 identity = sys.argv[1]
-listen_port = sys.argv[2]
-peer_ports = sys.argv[3:]
+listen_port = int(sys.argv[2])
+peer_args = sys.argv[3:]
+
+peer_endpoints = []
+
+for arg in peer_args:
+    if ':' in arg:
+        ip, port = arg.split(':')
+    else:
+        ip, port = '127.0.0.1', arg
+    peer_endpoints.append(f"{ip}:{port}")
 
 context = zmq.Context()
 
-# Thread para receber mensagens
+# Iniciar threads para recepção de mensagens
 threading.Thread(target=receive_messages, args=(context, listen_port), daemon=True).start()
 
-# Enviar mensagens
-send_messages(context, identity, peer_ports)
+# Iniciar threads de envio de mensagens 
+send_messages(context, identity, peer_endpoints)
