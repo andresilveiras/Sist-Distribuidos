@@ -99,3 +99,10 @@ ping 192.168.0.10
 
 ---
 
+## 🔎 TODO
+
+- Adicionar canal de vídeo
+- Manejo das threads quando um canal/usuário cai
+
+---
+
