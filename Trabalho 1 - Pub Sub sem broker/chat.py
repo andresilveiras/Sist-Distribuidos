@@ -2,6 +2,10 @@ import zmq
 import threading
 import time
 import sys
+from prompt_toolkit import prompt
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import print_formatted_text
+
 
 '''
 Função: receive_messages
@@ -14,8 +18,10 @@ def receive_messages(context, listen_port):
     sub_socket.setsockopt_string(zmq.SUBSCRIBE, "Chat_Texto")
 
     while True:
-        msg = sub_socket.recv_string()
-        print(msg)
+
+        topic, mensagem = sub_socket.recv_multipart()
+        if topic == b"Chat_Texto":
+            print_formatted_text(mensagem.decode())
 
 '''
 Função: send_messages
@@ -31,18 +37,21 @@ def send_messages(context, identity, peer_endpoints):
     time.sleep(1)
     print(f"Olá {identity}!\nDigite uma mensagem para conversar!")
 
-    while True:
-        msg = input()
-        topic = "Chat_Texto"
-        mensagem = f"{topic} {identity}: {msg}"
-        pub_socket.send_string(mensagem)
-        time.sleep(0.5)
+    with patch_stdout():
+        while True:
+            msg = prompt(f"{identity}: ")
+            topic = "Chat_Texto"
+            mensagem = f"{identity}: {msg}"
+            pub_socket.send_multipart([topic.encode(), mensagem.encode()])
+            time.sleep(0.5)
 
 
 # ========== PARÂMETROS ==========
 
 # Execução esperada:
 # python3 chat.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...
+
+# Execute com pip instal pyzmq 
 
 
 if len(sys.argv) < 3:
