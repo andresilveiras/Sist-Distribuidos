@@ -16,9 +16,9 @@ def receive_messages(context, listen_port):
     sub_socket.setsockopt_string(zmq.SUBSCRIBE, sub_topic)
 
     while True:
-        topico, mensagem = sub_socket.recv_multipart()
-        if topico == sub_topic.encode():
-            print_formatted_text(mensagem.decode())
+        topico, nickname, mensagem = sub_socket.recv_multipart()
+        if topico.decode() == sub_topic:
+            print_formatted_text(nickname.decode() + ": " + mensagem.decode())
 
 '''
 Função send_messages
@@ -35,7 +35,6 @@ def send_messages(context, nickname, peer_endpoints):
 
     with patch_stdout():
         while True:
-            msg = prompt(f"{nickname}: ")
-            mensagem = f"{nickname}: {msg}"
-            pub_socket.send_multipart([pub_topic.encode(), mensagem.encode()])
+            mensagem = prompt(f"{nickname}: ")
+            pub_socket.send_multipart([pub_topic.encode(), nickname.encode(), mensagem.encode()])
             time.sleep(0.5)
