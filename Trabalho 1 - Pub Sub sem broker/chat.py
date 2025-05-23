@@ -51,7 +51,7 @@ def send_messages(context, identity, peer_endpoints):
 # Execução esperada:
 # python3 chat.py <Nome> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ...
 
-# Execute com pip instal pyzmq 
+# Libs: pip instal pyzmq prompt_toolkit
 
 
 if len(sys.argv) < 3:
