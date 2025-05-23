@@ -10,6 +10,8 @@ Alunos:
 - Josué Martins da Conceição
 - Lucas Arruk Mendes
 
+Professor: Dr. Fredy João Valente
+
 ---
 
 ## 📁 Estrutura dos Arquivos
