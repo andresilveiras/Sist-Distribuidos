@@ -44,15 +44,15 @@ pip install pyzmq sounddevice numpy prompt_toolkit
 ### Execução padrão:
 
 ```bash
-python3 main.py <Nickname> <PortaLocal> <Peer1[:Porta]> [Peer2[:Porta]] ..."
+python3 main.py <Nickname> <PortaLocal> <Peer1[:Porta1]> [Peer2[:Porta2]] ...
 ```
 
 Onde:
 
-- **Nickname**: É o nome de exibição do usuário host no chat. Ex: `Bob`
+- **Nickname**: É o nome de exibição do usuário host no chat. Ex: `Alice`
 - **PortaLocal**: É a porta que será utilizada no host local para a comunicação. Ex: `6000`
 - **Peer1**: Endereço de IP na rede local do usuário 1 (o outro usuário ao qual o host irá se comunicar). Ex: `192.168.0.10`
-- **Porta**: Porta de comunicação TCP para o IP atribuído. Ex: `6001`
+- **Porta1**: Porta de comunicação TCP para o IP atribuído. Ex: `6001`
 
 O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
 
@@ -99,7 +99,7 @@ ping 192.168.0.10
 
 ---
 
-## 🔎 TODO
+## 📝 TODO
 
 - Adicionar canal de vídeo
 - Manejo das threads quando um canal/usuário cai
