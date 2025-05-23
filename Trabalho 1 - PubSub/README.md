@@ -1,6 +1,6 @@
 # Chat de Texto e Áudio com ZeroMQ
 
-Este projeto implementa um sistema de comunicação ponto-a-ponto com suporte a troca de **mensagens de texto** e **áudio em tempo real** por um modelo **Publish-Subscribe** (sem o uso de brokers) na linguagem **Python** e a biblioteca **ZeroMQ**
+Este projeto implementa um sistema de comunicação ponto-a-ponto com suporte a troca de **mensagens de texto** e **áudio em tempo real** por um modelo **Publish-Subscribe** (sem o uso de broker) na linguagem **Python** com a biblioteca **ZeroMQ**
 
 O projeto foi desenvolvido para o primeiro trabalho da disciplina Sistemas Distribuídos da Universidade Federal de São Carlos, no primeiro semestre de 2025.
 
