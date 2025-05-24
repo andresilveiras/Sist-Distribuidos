@@ -24,7 +24,7 @@ def send_audio(context, audio_peer_endpoints, stop_event):
             audio = sd.rec(int(duration * 44100), samplerate=44100, channels=1, dtype='int16')
             sd.wait()  # Espera o término da gravação
             pub_socket.send_multipart([pub_topic.encode(), audio.tobytes()])
-            print(f"Enviado pacote de {len(audio)} samples")
+            #print(f"Enviado pacote de {len(audio)} samples")
     except Exception as e:
         print("Erro no envio de áudio:", e)
     finally:
@@ -41,16 +41,20 @@ def receive_audio(context, listen_audio_port, stop_event):
     sub_socket.bind(f"tcp://0.0.0.0:{listen_audio_port}")
     sub_socket.setsockopt(zmq.SUBSCRIBE, sub_topic.encode())
 
+    poller = zmq.Poller()
+    poller.register(sub_socket, zmq.POLLIN)
+
     try:
         print("Esperando áudio...")
         while not stop_event.is_set():
-            topic, data_bytes = sub_socket.recv_multipart(flags=zmq.NOBLOCK)
-            if topic.decode() == sub_topic:
-                print("Recebido pacote de áudio") 
-                audio_data = np.frombuffer(data_bytes, dtype='int16')
-                sd.play(audio_data, samplerate=44100)
-            time.sleep(0.01)
-    except zmq.Again:
-        pass
+            events = dict(poller.poll(timeout=100))
+            if sub_socket in events:
+                topic, data_bytes = sub_socket.recv_multipart()
+                if topic.decode() == sub_topic:
+                    audio_data = np.frombuffer(data_bytes, dtype='int16')
+                    sd.play(audio_data, samplerate=44100)
+                    sd.wait()  # evita erro de finalização
+    except Exception as e:
+        print("Erro no recebimento de áudio:", e)
     finally:
         sub_socket.close()
