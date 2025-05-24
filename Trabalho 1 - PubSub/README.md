@@ -105,7 +105,6 @@ ping 192.168.0.10
 
 ## 📝 TODO
 
-- Manejo das threads quando um canal/usuário cai
 - Habilitar / Desabilitar canais de áudio / vídeo
 - Interface gráfica
 
