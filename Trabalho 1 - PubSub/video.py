@@ -25,6 +25,8 @@ def send_video(context, peer_video_endpoints, stop_event):
         _, buffer = cv2.imencode('.jpg', frame)
         pub_socket.send_multipart([pub_topic.encode(), buffer.tobytes()])
         time.sleep(0.03)  # Envio em ~30 FPS
+     # Libera os recursos no acionamento de stop_event
+    cap.release()
     pub_socket.close()
 
 ''' 
@@ -46,5 +48,6 @@ def receive_video(context, listen_video_port, stop_event):
             cv2.imshow("Video recebido", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-    sub_socket.close()
+    # Libera os recursos no acionamento de stop_event
     cv2.destroyAllWindows()
+    sub_socket.close()

@@ -1,4 +1,5 @@
 import zmq
+import time
 import threading
 from texto import send_messages, receive_messages
 from audio import send_audio, receive_audio
@@ -23,3 +24,4 @@ try:
 except KeyboardInterrupt:
     print("\nEncerrando...")
     stop_event.set()
+    time.sleep(1)
