@@ -8,13 +8,14 @@ Função send_audio
 Envia áudio para o tópico "Chat_Audio".
 '''
 
-def send_audio(context, peer_audio_endpoints, stop_event):
+def send_audio(context, audio_peer_endpoints, stop_event):
     pub_socket = context.socket(zmq.PUB)
     pub_topic = "Chat_Audio"
 
-    for endpoint in peer_audio_endpoints:
+    for endpoint in audio_peer_endpoints:
         pub_socket.connect(f"tcp://{endpoint}")
     time.sleep(1)
+    print(sd.query_devices())
 
     def callback(indata, frames, time_info, status):
         if status:
@@ -22,13 +23,13 @@ def send_audio(context, peer_audio_endpoints, stop_event):
         try:
             if not stop_event.is_set():
                 pub_socket.send_multipart([pub_topic.encode(), indata.tobytes()])
-                print("Enviando pacote de áudio")
         except zmq.ZMQError as e:
             print("Erro ao enviar áudio:", e)
 
     try:
         with sd.InputStream(samplerate=44100, channels=1, callback=callback, dtype='int16'):
             while not stop_event.is_set():
+                #print("Enviando pacote de áudio")
                 time.sleep(0.1) # Envia pacotes de áudio a cada 0.1 segundos
     except Exception as e:
         print("Erro no stream de áudio:", e)
