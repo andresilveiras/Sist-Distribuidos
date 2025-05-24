@@ -1,6 +1,6 @@
-# Chat de Texto e Áudio com ZeroMQ
+# Videoconferência com canais de vídeo, áudio e texto com ZeroMQ
 
-Este projeto implementa um sistema de comunicação ponto-a-ponto com suporte a troca de **mensagens de texto** e **áudio em tempo real** por um modelo **Publish-Subscribe** (sem o uso de broker) na linguagem **Python** com a biblioteca **ZeroMQ**
+Este projeto implementa um sistema de comunicação ponto-a-ponto com suporte a troca de **mensagens de texto, vídeo e áudio em tempo real** por um modelo **Publish-Subscribe** (sem o uso de broker) na linguagem **Python** com a biblioteca **ZeroMQ**
 
 O projeto foi desenvolvido para o primeiro trabalho da disciplina Sistemas Distribuídos da Universidade Federal de São Carlos, no primeiro semestre de 2025.
 
@@ -21,6 +21,7 @@ Trabalho 1 - PubSub/
 ├── main.py          # Script principal que executa o chat completo
 ├── texto.py         # Módulo com funções de envio/recepção de texto
 ├── audio.py         # Módulo com funções de envio/recepção de áudio
+├── video.py         # Módulo com funções de envio/recepção de vídeo
 ├── utils.py         # Módulo para tratar argumentos da linha de comando
 └── README.md        # Este arquivo
 ```
@@ -32,7 +33,7 @@ Trabalho 1 - PubSub/
 Instale as dependências com:
 
 ```bash
-pip install pyzmq sounddevice numpy prompt_toolkit
+pip install pyzmq numpy prompt_toolkit sounddevice opencv-python
 ```
 
 > Obs: o `sounddevice` pode exigir bibliotecas de sistema no Linux (ex: `portaudio`).
@@ -56,6 +57,8 @@ Onde:
 
 O áudio será transmitido automaticamente por uma porta paralela `porta_texto + 1000`. Ex: 6000 → 7000.
 
+O vídeo será transmitido automaticamente por uma porta paralela `porta_texto + 2000`. Ex: 6000 → 8000.
+
 ### Exemplo: Terminal 1 (Usuário A)
 
 ```bash
@@ -78,6 +81,7 @@ python3 main.py Bob 6001 192.168.0.10:6000
 
 * **Mensagens de Texto**: com interface fluida no terminal via `prompt_toolkit`.
 * **Transmissão de Áudio**: captura e reprodução em tempo real entre os peers.
+- **Transmissão de Vídeo**: via webcam com compressão JPEG
 * **Tópicos nomeados**: `Chat_Texto` e `Chat_Audio` para separar os canais.
 * **Conexão via IP real**: funciona em redes locais sem precisar de broker central.
 
@@ -101,8 +105,9 @@ ping 192.168.0.10
 
 ## 📝 TODO
 
-- Adicionar canal de vídeo
 - Manejo das threads quando um canal/usuário cai
+- Habilitar / Desabilitar canais de áudio / vídeo
+- Interface gráfica
 
 ---
 

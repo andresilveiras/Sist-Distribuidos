@@ -11,6 +11,7 @@ def parse_args():
 
     peer_endpoints = []
     audio_peer_endpoints = []
+    video_peer_endpoints = []
 
     for arg in peer_args:
         if ':' in arg:
@@ -20,5 +21,6 @@ def parse_args():
 
         peer_endpoints.append(f"{ip}:{port}")
         audio_peer_endpoints.append(f"{ip}:{int(port) + 1000}")
+        video_peer_endpoints.append(f"{ip}:{int(port) + 2000}")
 
-    return nickname, listen_port, peer_endpoints, audio_peer_endpoints
+    return nickname, listen_port, peer_endpoints, audio_peer_endpoints, video_peer_endpoints
