@@ -19,7 +19,7 @@ def send_audio(context, audio_peer_endpoints, stop_event):
     duration = 0.2  # 200 ms de áudio por pacote (~8820 samples com 44100 Hz)
 
     try:
-        print("Iniciando captura de áudio...")
+        #print("Iniciando captura de áudio...")
         while not stop_event.is_set():
             audio = sd.rec(int(duration * 44100), samplerate=44100, channels=1, dtype='int16')
             sd.wait()  # Espera o término da gravação
@@ -45,13 +45,14 @@ def receive_audio(context, listen_audio_port, stop_event):
     poller.register(sub_socket, zmq.POLLIN)
 
     try:
-        print("Esperando áudio...")
+        #print("Esperando áudio...")
         while not stop_event.is_set():
             events = dict(poller.poll(timeout=100))
             if sub_socket in events:
                 topic, data_bytes = sub_socket.recv_multipart()
                 if topic.decode() == sub_topic:
                     audio_data = np.frombuffer(data_bytes, dtype='int16')
+                    audio_data = audio_data.reshape(-1, 1)  # Garante shape (n, 1) para mono
                     sd.play(audio_data, samplerate=44100)
                     sd.wait()  # evita erro de finalização
     except Exception as e:
