@@ -22,6 +22,7 @@ def send_audio(context, peer_audio_endpoints, stop_event):
         try:
             if not stop_event.is_set():
                 pub_socket.send_multipart([pub_topic.encode(), indata.tobytes()])
+                print("Enviando pacote de áudio")
         except zmq.ZMQError as e:
             print("Erro ao enviar áudio:", e)
 
@@ -47,9 +48,11 @@ def receive_audio(context, listen_audio_port, stop_event):
     sub_socket.setsockopt(zmq.SUBSCRIBE, sub_topic.encode())
 
     try:
+        print("Esperando áudio...")
         while not stop_event.is_set():
             topic, data_bytes = sub_socket.recv_multipart(flags=zmq.NOBLOCK)
             if topic.decode() == sub_topic:
+                print("Recebido pacote de áudio") 
                 audio_data = np.frombuffer(data_bytes, dtype='int16')
                 sd.play(audio_data, samplerate=44100)
             time.sleep(0.01)
