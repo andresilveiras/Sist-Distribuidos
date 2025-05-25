@@ -16,7 +16,7 @@ def send_audio(context, audio_peer_endpoints, stop_event):
         pub_socket.connect(f"tcp://{endpoint}")
     time.sleep(1)
 
-    duration = 0.2  # 200 ms de áudio por pacote (~8820 samples com 44100 Hz)
+    duration = 0.5  # 200 ms de áudio por pacote (~8820 samples com 44100 Hz)
 
     try:
         #print("Iniciando captura de áudio...")
