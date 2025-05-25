@@ -68,6 +68,9 @@ python3 main.py Alice 6000 192.168.0.11:6001 --audio --video
 ```bash
 python3 main.py Bob 6001 192.168.0.10:6000 --audio --video
 ```
+Onde: 
+* `192.168.0.10:6000`  é o IP:Porta da máquina A
+* `192.168.0.11:6001`  é o IP:Porta da máquina B
 
 ### Portas utilizadas automaticamente:
 - **Texto**: Porta principal (ex: 6000)
