@@ -43,13 +43,15 @@ pip install pyzmq numpy prompt_toolkit sounddevice opencv-python
 ## ▶️ Como Executar
 
 ```bash
-python3 main.py <Nickname> <PortaLocal> <Peer1[:Porta1]> [Peer2[:Porta2]] [--audio] [--video]
+python3 main.py <Nickname> <PortaLocal> <Peer1[:Porta1]> [Peer2[:Porta2]] ... [PeerN[:PortaN]] [--audio] [--video]
 ```
 
 ### Argumentos obrigatórios:
 - `<Nickname>`: Nome de exibição do usuário no chat. Ex: `Alice`
 - `<PortaLocal>`: Porta local usada para escutar mensagens de texto. Ex: `6000`
 - `<Peer[:Porta]>`: IP e porta de outro participante. Se a porta não for especificada, usa `localhost`.
+
+> É possível conectar com N peers
 
 ### Flags opcionais:
 - `--audio`: Ativa o canal de áudio
