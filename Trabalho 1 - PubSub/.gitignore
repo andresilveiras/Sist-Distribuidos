@@ -1,4 +1,4 @@
 # Do not track virtual environment
 .venv/
-.venv_t1_pubsub
+.venv_t1_pubsub/
 __pycache__
