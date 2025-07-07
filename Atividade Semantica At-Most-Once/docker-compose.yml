@@ -1,0 +1,50 @@
+
+version: "3.9"
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  http_server:
+    build:
+      context: ./http_version
+      dockerfile: Dockerfile.server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./http_version/shared:/app/shared
+    depends_on:
+      - redis
+    profiles: ["http"]
+
+  http_client:
+    build:
+      context: ./http_version
+      dockerfile: Dockerfile.client
+    depends_on:
+      - http_server
+    volumes:
+      - ./http_version/shared:/app/shared
+    profiles: ["http"]
+
+  zmq_server:
+    build:
+      context: ./zeromq_version
+      dockerfile: Dockerfile.server
+    volumes:
+      - ./zeromq_version/shared:/app/shared
+    depends_on:
+      - redis
+    profiles: ["zeromq"]
+
+  zmq_client:
+    build:
+      context: ./zeromq_version
+      dockerfile: Dockerfile.client
+    depends_on:
+      - zmq_server
+    volumes:
+      - ./zeromq_version/shared:/app/shared
+    profiles: ["zeromq"]
