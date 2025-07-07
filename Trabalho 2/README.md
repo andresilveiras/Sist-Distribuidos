@@ -2,6 +2,16 @@
 
 Este projeto simula uma planta de manufatura com múltiplas linhas de produção, controle de estoque de partes e produtos acabados, e comunicação entre entidades via MQTT.
 
+O projeto foi desenvolvido para o segundo trabalho da disciplina Sistemas Distribuídos da Universidade Federal de São Carlos, no primeiro semestre de 2025.
+
+Alunos:
+
+- André Silveira Sousa
+- Josué Martins da Conceição
+- Lucas Arruk Mendes
+
+Professor: Dr. Fredy João Valente
+
 ## Descrição do Trabalho
 
 Objetivo: Garantir que não ocorra ruptura na fabricação por falta de partes.
