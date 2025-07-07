@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  broker:
+    image: eclipse-mosquitto
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./broker:/mosquitto/config
+
+  warehouse:
+    build: ./entities/warehouse
+    depends_on:
+      - broker
+
+  supplier:
+    build: ./entities/supplier
+    depends_on:
+      - broker
+
+  factory1_line1:
+    build: ./entities/factory1/line1
+    depends_on:
+      - broker
