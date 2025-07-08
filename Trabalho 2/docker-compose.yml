@@ -1,6 +1,6 @@
-version: '3.8'
-
 services:
+
+  # Broker MQTT
   broker:
     image: eclipse-mosquitto
     container_name: mqtt_broker
@@ -8,19 +8,41 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - ./broker:/mosquitto/config
+      - ./broker/config:/mosquitto/config
+    #  - ./broker/data:/mosquitto/data  # <-- Adicionar esta linha
+    #  - ./broker/log:/mosquitto/log    # <-- Opcional, para logs
+    healthcheck:
+      test: ["CMD", "mosquitto_ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  warehouse:
-    build: ./entities/warehouse
+# Estoque
+  warehouse: 
+    build:
+      context: .
+      dockerfile: entities/warehouse/Dockerfile
+    container_name: warehouse
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
 
+# Fornecedor
   supplier:
-    build: ./entities/supplier
+    build:
+      context: .
+      dockerfile: entities/supplier/Dockerfile
+    container_name: supplier
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
 
+# Fábrica 1 - Linha 1
   factory1_line1:
-    build: ./entities/factory1/line1
+    build:
+      context: .
+      dockerfile: entities/factory1/line1/Dockerfile
+    container_name: factory1_line1
     depends_on:
-      - broker
+      broker:
+        condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
