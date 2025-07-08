@@ -1,12 +1,11 @@
-import paho.mqtt.client as mqtt
 import time
+from shared.mqtt_client import get_client
 
 def on_connect(client, userdata, flags, rc):
     print("[SUPPLIER] Conectado ao broker MQTT")
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.connect("broker", 1883, 60)
+# Passamos a função de callback para nosso novo helper
+client = get_client(on_connect_callback=on_connect)
 client.loop_start()
 
 while True:

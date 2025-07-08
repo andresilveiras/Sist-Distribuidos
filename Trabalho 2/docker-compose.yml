@@ -9,11 +9,12 @@ services:
       - "9001:9001"
     volumes:
       - ./broker/config:/mosquitto/config
-    #  - ./broker/data:/mosquitto/data  # <-- Adicionar esta linha
+    #  - ./broker/data:/mosquitto/data  # <-- Adicionar esta linha para implementar persistência de dados
     #  - ./broker/log:/mosquitto/log    # <-- Opcional, para logs
     healthcheck:
-      test: ["CMD", "mosquitto_ping", "-h", "localhost"]
+      test: ["CMD", "nc", "-z", "127.0.0.1", "1883"]
       interval: 5s
+      start_period: 10s
       timeout: 5s
       retries: 5
 

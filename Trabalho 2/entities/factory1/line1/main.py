@@ -1,8 +1,7 @@
-import paho.mqtt.client as mqtt
 import time
+from shared.mqtt_client import get_client
 
-client = mqtt.Client()
-client.connect("broker", 1883, 60)
+client = get_client()
 client.loop_start()
 
 while True:
