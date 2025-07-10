@@ -38,12 +38,51 @@ services:
       broker:
         condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
 
-# Fábrica 1 - Linha 1
-  factory1_line1:
+# --- Fábrica 1 ---
+  factory1_line_base: &factory1_line_base
     build:
       context: .
-      dockerfile: entities/factory1/line1/Dockerfile
-    container_name: factory1_line1
+      dockerfile: entities/factory1/line/Dockerfile
     depends_on:
       broker:
         condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
+
+  factory1_line1:
+    <<: *factory1_line_base
+    container_name: factory1_line1
+    environment:
+      - LINE_ID=F1-L1
+      - PRODUCT_ID=Pv1
+      - BATCH_SIZE=60
+
+  factory1_line2:
+    <<: *factory1_line_base
+    container_name: factory1_line2
+    environment:
+      - LINE_ID=F1-L2
+      - PRODUCT_ID=Pv2
+      - BATCH_SIZE=60
+
+  factory1_line3:
+    <<: *factory1_line_base
+    container_name: factory1_line3
+    environment:
+      - LINE_ID=F1-L3
+      - PRODUCT_ID=Pv3
+      - BATCH_SIZE=60
+
+  factory1_line4:
+    <<: *factory1_line_base
+    container_name: factory1_line4
+    environment:
+      - LINE_ID=F1-L4
+      - PRODUCT_ID=Pv4
+      - BATCH_SIZE=60
+
+  factory1_line5:
+    <<: *factory1_line_base
+    container_name: factory1_line5
+    environment:
+      - LINE_ID=F1-L5
+      - PRODUCT_ID=Pv5
+      - BATCH_SIZE=60
