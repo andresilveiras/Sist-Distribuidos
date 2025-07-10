@@ -25,10 +25,13 @@ def on_message(client, userdata, msg):
 
         # Assume que o buffer é para a "Parte A" conforme inicializado
         if part_name.strip() == buffer.part_name:
-            # O README menciona um método CheckOut, vamos usar check_out por convenção Python
-            buffer.check_out(quantity)
-            print(f"[WAREHOUSE] Check-out de {quantity} da '{part_name.strip()}' realizado.")
-            # O README diz que o buffer deve ser mostrado em tela com seu valor e COR
+            # Tenta realizar o check-out e verifica se foi bem-sucedido
+            if buffer.check_out(quantity):
+                print(f"[WAREHOUSE] Check-out de {quantity} da '{part_name.strip()}' realizado.")
+            else:
+                print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name.strip()}'.")
+            
+            # Mostra o status do estoque independentemente do resultado do check-out
             print(f"[WAREHOUSE] Novo status do estoque: {buffer}") 
         else:
             print(f"[WAREHOUSE] AVISO: Recebida solicitação para parte não gerenciada: {part_name.strip()}")

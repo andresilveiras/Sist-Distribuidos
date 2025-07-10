@@ -32,11 +32,15 @@ class Buffer:
             return "AMARELO"
         return "VERDE"
 
-    def check_out(self, quantity: int):
-        """Decrementa a quantidade de peças no buffer."""
-        self.current_quantity -= quantity
-        if self.current_quantity < 0:
-            self.current_quantity = 0
+    def check_out(self, quantity: int) -> bool:
+        """
+        Tenta decrementar a quantidade de peças no buffer.
+        Retorna True se bem-sucedido, False se não houver estoque suficiente.
+        """
+        if self.current_quantity >= quantity:
+            self.current_quantity -= quantity
+            return True
+        return False
 
     def check_in(self, quantity: int):
         """Incrementa a quantidade de peças no buffer."""
