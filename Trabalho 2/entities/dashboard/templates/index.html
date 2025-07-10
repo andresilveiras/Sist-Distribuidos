@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,7 +60,8 @@
             line-height: 20px;
             transition: width 0.5s ease;
         }
-        .line-status { margin-top: 10px; font-style: italic; }
+        .line-status { margin-top: 10px; font-style: italic; color: #666; }
+        .line-progress-text { text-align: center; font-weight: bold; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -98,15 +99,20 @@
 
             const linesGrid = document.getElementById('lines-grid');
             linesGrid.innerHTML = '';
-            for (const lineId in data.lines) {
+            // Ordena as linhas para uma exibição consistente
+            const sortedLineIds = Object.keys(data.lines).sort();
+            for (const lineId of sortedLineIds) {
+                 const line = data.lines[lineId];
+                 const percentage = (line.completed / line.total) * 100;
                  linesGrid.innerHTML += `
                     <div id="line-${lineId}" class="line-item">
                         <h3>Linha ${lineId}</h3>
-                        <p>Produto: <strong id="line-prod-${lineId}"></strong></p>
+                        <p>Produto: <strong id="line-prod-${lineId}">${line.product_id}</strong></p>
                         <div class="progress-bar">
-                            <div id="line-progress-${lineId}" class="progress-bar-fill">0%</div>
+                            <div id="line-progress-${lineId}" class="progress-bar-fill" style="width: ${percentage}%">${Math.round(percentage)}%</div>
                         </div>
-                        <p class="line-status" id="line-status-${lineId}"></p>
+                        <p class="line-progress-text" id="line-count-${lineId}">${line.completed} / ${line.total} unidades</p>
+                        <p class="line-status" id="line-status-${lineId}">Status: ${line.status_text}</p>
                     </div>
                 `;
             }
@@ -125,6 +131,7 @@
             const lineElement = document.getElementById(`line-${data.line_id}`);
             if (lineElement) {
                 document.getElementById(`line-prod-${data.line_id}`).textContent = data.product_id;
+                document.getElementById(`line-count-${data.line_id}`).textContent = `${data.completed} / ${data.total} unidades`;
                 document.getElementById(`line-status-${data.line_id}`).textContent = `Status: ${data.status_text}`;
                 const progressFill = document.getElementById(`line-progress-${data.line_id}`);
                 const percentage = (data.completed / data.total) * 100;

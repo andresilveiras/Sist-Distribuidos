@@ -42,7 +42,7 @@ def on_message(client, userdata, msg):
         status = status.strip()
         
         if status == "CHECKOUT_SUCCESS" and part_name in parts_needed_for_current_unit:
-            print(f"[LINE {LINE_ID}] Peça '{part_name}' recebida do almoxarifado.")
+            #print(f"[LINE {LINE_ID}] Peça '{part_name}' recebida do almoxarifado.")
             parts_needed_for_current_unit.remove(part_name)
         
         elif status == "OUT_OF_STOCK" and not production_halted:
@@ -79,7 +79,7 @@ while current_batch_count < BATCH_SIZE:
     else:
         # Solicita a próxima peça necessária
         part_to_request = next(iter(parts_needed_for_current_unit))
-        print(f"[LINE {LINE_ID}] Solicitando peça '{part_to_request}' para o produto {PRODUCT_ID}.")
+        #print(f"[LINE {LINE_ID}] Solicitando peça '{part_to_request}' para o produto {PRODUCT_ID}.")
         client.publish("estoque/check_out", f"{part_to_request}:1")
         time.sleep(0.5) # Pequena pausa para não sobrecarregar o broker
 
