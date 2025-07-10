@@ -17,6 +17,11 @@ production_halted = False # Flag para parar a produção se faltar qualquer peç
 parts_needed_for_current_unit = set(BOM[PRODUCT_ID])
 current_batch_count = 0
 
+def publish_line_status(client, status_text):
+    """Publica o estado atual da linha para o dashboard."""
+    payload = f"{PRODUCT_ID}:{current_batch_count}:{BATCH_SIZE}:{status_text}"
+    client.publish(f"dashboard/lines/{LINE_ID}", payload, retain=True)
+
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
         print(f"[LINE {LINE_ID}] Falha ao conectar: {reason_code}")
@@ -24,6 +29,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print(f"[LINE {LINE_ID}] Conectado ao broker MQTT. Produzindo {BATCH_SIZE} unidades de {PRODUCT_ID}.")
         # Se inscreve no tópico de status do estoque para saber quando parar/retomar
         client.subscribe("estoque/status")
+        publish_line_status(client, "Iniciando")
 
 def on_message(client, userdata, msg):
     """Processa mensagens de status do almoxarifado."""
@@ -41,10 +47,12 @@ def on_message(client, userdata, msg):
         
         elif status == "OUT_OF_STOCK" and not production_halted:
             print(f"[LINE {LINE_ID}] AVISO: Estoque de '{part_name}' insuficiente. Produção parada.")
+            publish_line_status(client, f"Parada - Falta {part_name}")
             production_halted = True
 
         elif status == "STOCK_OK" and production_halted:
             print(f"[LINE {LINE_ID}] INFO: Estoque normalizado. Retomando produção.")
+            publish_line_status(client, "Produzindo")
             production_halted = False
 
     except (ValueError, IndexError):
@@ -59,6 +67,7 @@ while current_batch_count < BATCH_SIZE:
     if not parts_needed_for_current_unit:
         current_batch_count += 1
         print(f"[LINE {LINE_ID}] PRODUTO {PRODUCT_ID} MONTADO! ({current_batch_count}/{BATCH_SIZE})")
+        publish_line_status(client, "Produzindo")
         if current_batch_count < BATCH_SIZE:
             parts_needed_for_current_unit = set(BOM[PRODUCT_ID])
         else:
@@ -74,4 +83,5 @@ while current_batch_count < BATCH_SIZE:
         client.publish("estoque/check_out", f"{part_to_request}:1")
         time.sleep(0.5) # Pequena pausa para não sobrecarregar o broker
 
+publish_line_status(client, "Finalizada")
 print(f"[LINE {LINE_ID}] Lote de {BATCH_SIZE} unidades de {PRODUCT_ID} finalizado.")

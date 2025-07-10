@@ -38,6 +38,17 @@ services:
       broker:
         condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
 
+# --- Dashboard ---
+  dashboard:
+    build:
+      context: .
+      dockerfile: entities/dashboard/Dockerfile
+    container_name: dashboard
+    ports:
+      - "5000:5000"
+    depends_on:
+      broker:
+        condition: service_healthy
 # --- Fábrica 1 ---
   factory1_line_base: &factory1_line_base
     build:

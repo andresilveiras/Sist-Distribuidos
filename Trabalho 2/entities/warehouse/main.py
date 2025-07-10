@@ -54,7 +54,9 @@ def on_message(client, userdata, msg):
                 client.publish("estoque/status", f"{part_name}:OUT_OF_STOCK")
             
             # Mostra o status do estoque
-            print(f"[WAREHOUSE] Novo status do estoque: {buffer}") 
+            print(f"[WAREHOUSE] Novo status do estoque: {buffer}")
+            # Publica a atualização para o dashboard
+            client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
 
             # Verifica se precisa reabastecer
             if buffer.status == "VERMELHO" and not restock_ordered[part_name]:
@@ -69,6 +71,8 @@ def on_message(client, userdata, msg):
             buffer.check_in(quantity)
             print(f"[WAREHOUSE] Check-in de {quantity} da '{part_name}' realizado.")
             print(f"[WAREHOUSE] Novo status do estoque: {buffer}")
+            # Publica a atualização para o dashboard
+            client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
             
             # Se o estoque estava baixo (insuficiente para um pedido) e agora está OK, notifica a linha.
             # Assumimos que a linha precisa de pelo menos 1 unidade para continuar.
