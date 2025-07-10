@@ -32,7 +32,7 @@ Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fab
 
 ## 🎯 Cenário Atual (Simplificado)
 
-Seguindo a sugestão do escopo, a versão atual implementa um cenário mínimo e funcional para validar a arquitetura base:
+Seguindo a sugestão do escopo, a versão atual implementa um ciclo de produção e reabastecimento completo para validar a arquitetura base:
 
 - **1 Fornecedor (`supplier`)**: Por enquanto, apenas simula sua existência, sem reabastecer o estoque.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de um único item (`Parte A`).
@@ -77,11 +77,13 @@ Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em su
 
 ## ⚙️ Funcionamento da Simulação
 
-1.  A **Linha de Produção** (`factory1_line1`) solicita 5 unidades da `Parte A` a cada 5 segundos.
-2.  Para isso, ela publica uma mensagem no tópico MQTT `estoque/check_out`.
-3.  O **Almoxarifado** (`warehouse`), que está inscrito neste tópico, recebe o pedido.
-4.  Ele processa o pedido, decrementa a quantidade em seu `Buffer` e imprime o novo status do estoque no console.
-5.  O status do estoque é exibido com um sistema de cores (Kanban) para fácil visualização: **<span style="color:green">VERDE</span>**, **<span style="color:yellow">AMARELO</span>** ou **<span style="color:red">VERMELHO</span>**.
+A simulação agora opera em um ciclo fechado de consumo e reabastecimento:
+
+1.  **Consumo**: A **Linha de Produção** (`factory1_line1`) solicita 5 unidades da `Parte A` a cada 5 segundos, publicando um pedido no tópico `estoque/check_out`.
+2.  **Processamento**: O **Almoxarifado** (`warehouse`) recebe o pedido, valida se há estoque e realiza o `check_out`. O novo status do estoque é exibido no console com um sistema de cores (Kanban): **<span style="color:green">VERDE</span>**, **<span style="color:yellow">AMARELO</span>** ou **<span style="color:red">VERMELHO</span>**.
+3.  **Alerta de Nível Baixo**: Se o `check_out` faz o nível do estoque atingir o status **VERMELHO**, o almoxarifado publica uma ordem de compra no tópico `estoque/reabastecer`.
+4.  **Atuação do Fornecedor**: O **Fornecedor** (`supplier`), que está inscrito neste tópico, recebe a ordem. Ele simula um tempo de entrega e, ao final, envia as peças publicando no tópico `estoque/check_in`.
+5.  **Reabastecimento**: O **Almoxarifado** recebe as novas peças, realiza o `check_in` em seu buffer e normaliza o nível de estoque, completando o ciclo.
 
 ## 🛠️ Tecnologias
 - Python
@@ -90,6 +92,6 @@ Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em su
 
 ## 🔮 Próximos Passos
 
-- Implementar a lógica de reabastecimento do **Fornecedor**.
-- Fazer o **Almoxarifado** emitir um pedido de compra quando o estoque atingir o nível **VERMELHO**.
+- Implementar um mecanismo de feedback para que a linha de produção pare de solicitar peças quando o estoque estiver zerado.
+- Adaptar o almoxarifado para gerenciar múltiplos tipos de peças simultaneamente.
 - Escalar a solução para múltiplas linhas, produtos e peças, conforme o escopo completo do trabalho.
