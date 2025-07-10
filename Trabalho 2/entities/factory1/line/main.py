@@ -85,3 +85,7 @@ while current_batch_count < BATCH_SIZE:
 
 publish_line_status(client, "Finalizada")
 print(f"[LINE {LINE_ID}] Lote de {BATCH_SIZE} unidades de {PRODUCT_ID} finalizado.")
+
+# Garante que todas as mensagens pendentes sejam enviadas antes de sair.
+client.loop_stop()
+client.disconnect()
