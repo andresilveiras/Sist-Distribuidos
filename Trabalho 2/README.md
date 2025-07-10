@@ -14,7 +14,7 @@ Professor: Dr. Fredy João Valente
 
 ## Descrição do Trabalho
 
-Objetivo: Garantir que não ocorra ruptura na fabricação por falta de partes.
+**Objetivo Final:** Garantir que não ocorra ruptura na fabricação por falta de partes em um cenário complexo com múltiplas fábricas, linhas e produtos.
 
 Cenário: Uma empresa possuí 2 unidades fabris: fábrica 1 com 5 linhas de produção e fábrica 2 com 8 linhas de produção. A empresa fabrica 1 produto em 5 versões diferentes (Pv1, Pv2, Pv3, Pv4, Pv5).
 
@@ -30,33 +30,66 @@ monitorar nível de estoque de partes no almoxarifado usando mesma estratégia d
 
 Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fabricas, linhas, almoxarifado, fornecedores) Criar Buffer estoque onde Consumo faz CheckOut (decrementa) e Abastecimento faz CheckIn (incrementa). Todo buffer de materiais e produtos deve ser mostrado em tela com seu valor atual e COR. Toda mensagem de pedidos de reabastecimento e ordem de produção deve usar MQTT entre entidades na 1ª versão do projeto – a versão final deve usar banco de dados em memória (ex. REDIS) ou RabbitMQ (justificar e explicar a escolha), compartilhado entre as entidades. 
 
-Sugestão: desenhar solução para 1 fornecedor, 1 almoxarifado, 1 fábrica com1 linha e 1 produto com 53 partes e depois escalar para cenário do projeto
+## 🎯 Cenário Atual (Simplificado)
 
-## 🧱 Estrutura Inicial
-- **Fornecedor**
-- **Almoxarifado**
-- **Fábrica 1 (Linha 1)**
-- **Broker MQTT (Mosquitto)**
+Seguindo a sugestão do escopo, a versão atual implementa um cenário mínimo e funcional para validar a arquitetura base:
 
-## 🚀 Como Executar
-1. Instale o Docker e Docker Compose
-2. Clone este repositório
-3. Execute:
+- **1 Fornecedor (`supplier`)**: Por enquanto, apenas simula sua existência, sem reabastecer o estoque.
+- **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de um único item (`Parte A`).
+- **1 Fábrica com 1 Linha de Produção (`factory1_line1`)**: Consome `Parte A` do almoxarifado em intervalos regulares.
+- **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
+
+## 📁 Estrutura dos Arquivos
+
+```
+Trabalho 2/
+├── broker/
+│   ├── config/
+│   │   └── mosquitto.conf  # Configurações do broker (logs, etc.)
+│   └── Dockerfile
+├── entities/
+│   ├── factory1/line1/
+│   │   ├── Dockerfile
+│   │   └── main.py         # Lógica da linha de produção
+│   ├── supplier/
+│   │   ├── Dockerfile
+│   │   └── main.py         # Lógica do fornecedor
+│   └── warehouse/
+│       ├── Dockerfile
+│       └── main.py         # Lógica do almoxarifado
+├── shared/
+│   ├── buffer.py           # Classe do Buffer de estoque com lógica Kanban
+│   └── mqtt_client.py      # Helper para criar clientes MQTT
+├── docker-compose.yml      # Orquestra todos os contêineres
+└── README.md               # Este arquivo
+```
+
+## ▶️ Como Executar
+
+Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em sua máquina.
+
+1.  Clone este repositório.
+2.  No terminal, navegue até a raiz do projeto e execute:
    ```bash
    docker-compose up --build
    ```
+3.  Observe os logs no terminal. Para encerrar a simulação, pressione `Ctrl+C`.
 
-## 📡 Comunicação
-As entidades trocam mensagens via tópicos MQTT. Ex:
-- `estoque/check_out`
-- `estoque/check_in`
-- `ordem/producao`
+## ⚙️ Funcionamento da Simulação
 
-## 📦 Estoque
-Cada parte tem um buffer com limite verde/amarelo/vermelho (Kanban).
+1.  A **Linha de Produção** (`factory1_line1`) solicita 5 unidades da `Parte A` a cada 5 segundos.
+2.  Para isso, ela publica uma mensagem no tópico MQTT `estoque/check_out`.
+3.  O **Almoxarifado** (`warehouse`), que está inscrito neste tópico, recebe o pedido.
+4.  Ele processa o pedido, decrementa a quantidade em seu `Buffer` e imprime o novo status do estoque no console.
+5.  O status do estoque é exibido com um sistema de cores (Kanban) para fácil visualização: **<span style="color:green">VERDE</span>**, **<span style="color:yellow">AMARELO</span>** ou **<span style="color:red">VERMELHO</span>**.
 
 ## 🛠️ Tecnologias
 - Python
 - MQTT (Eclipse Mosquitto)
 - Docker / Docker Compose
 
+## 🔮 Próximos Passos
+
+- Implementar a lógica de reabastecimento do **Fornecedor**.
+- Fazer o **Almoxarifado** emitir um pedido de compra quando o estoque atingir o nível **VERMELHO**.
+- Escalar a solução para múltiplas linhas, produtos e peças, conforme o escopo completo do trabalho.

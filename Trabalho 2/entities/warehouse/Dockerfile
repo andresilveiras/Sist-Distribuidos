@@ -3,4 +3,4 @@ WORKDIR /app
 COPY ./shared /app/shared
 COPY ./entities/warehouse/main.py /app
 RUN pip install paho-mqtt
-CMD ["python", "main.py"]
+CMD ["python", "-u", "main.py"]
