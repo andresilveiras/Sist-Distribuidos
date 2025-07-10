@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Produção</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        h1, h2 { text-align: center; color: #444; }
+        .container { max-width: 1200px; margin: auto; }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .grid-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        .grid-item .part-name { font-weight: bold; margin-bottom: 5px; }
+        .grid-item .part-quantity { font-size: 16px; }
+        .status-VERDE { background-color: #d4edda; border-color: #c3e6cb; }
+        .status-AMARELO { background-color: #fff3cd; border-color: #ffeeba; }
+        .status-VERMELHO { background-color: #f8d7da; border-color: #f5c6cb; }
+
+        .lines-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .line-item {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .line-item h3 { margin-top: 0; }
+        .progress-bar {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 20px;
+            background-color: #0d6efd;
+            width: 0%;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+            transition: width 0.5s ease;
+        }
+        .line-status { margin-top: 10px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard de Produção</h1>
+
+        <h2>Linhas de Produção - Fábrica 1</h2>
+        <div id="lines-grid" class="lines-container"></div>
+
+        <h2>Status do Almoxarifado</h2>
+        <div id="inventory-grid" class="grid-container"></div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Conectado ao servidor de dashboard!');
+        });
+
+        // Recebe o estado inicial completo
+        socket.on('initial_state', (data) => {
+            console.log('Estado inicial recebido');
+            const inventoryGrid = document.getElementById('inventory-grid');
+            inventoryGrid.innerHTML = '';
+            for (const partName in data.inventory) {
+                const part = data.inventory[partName];
+                inventoryGrid.innerHTML += `
+                    <div id="part-${partName}" class="grid-item status-${part.status}">
+                        <div class="part-name">${partName}</div>
+                        <div class="part-quantity">${part.quantity}/100</div>
+                    </div>
+                `;
+            }
+
+            const linesGrid = document.getElementById('lines-grid');
+            linesGrid.innerHTML = '';
+            for (const lineId in data.lines) {
+                 linesGrid.innerHTML += `
+                    <div id="line-${lineId}" class="line-item">
+                        <h3>Linha ${lineId}</h3>
+                        <p>Produto: <strong id="line-prod-${lineId}"></strong></p>
+                        <div class="progress-bar">
+                            <div id="line-progress-${lineId}" class="progress-bar-fill">0%</div>
+                        </div>
+                        <p class="line-status" id="line-status-${lineId}"></p>
+                    </div>
+                `;
+            }
+        });
+
+        // Recebe atualizações individuais
+        socket.on('inventory_update', (data) => {
+            const partElement = document.getElementById(`part-${data.part_name}`);
+            if (partElement) {
+                partElement.className = `grid-item status-${data.status}`;
+                partElement.querySelector('.part-quantity').textContent = `${data.quantity}/100`;
+            }
+        });
+
+        socket.on('line_update', (data) => {
+            const lineElement = document.getElementById(`line-${data.line_id}`);
+            if (lineElement) {
+                document.getElementById(`line-prod-${data.line_id}`).textContent = data.product_id;
+                document.getElementById(`line-status-${data.line_id}`).textContent = `Status: ${data.status_text}`;
+                const progressFill = document.getElementById(`line-progress-${data.line_id}`);
+                const percentage = (data.completed / data.total) * 100;
+                progressFill.style.width = `${percentage}%`;
+                progressFill.textContent = `${Math.round(percentage)}%`;
+            }
+        });
+    </script>
+</body>
+</html>
