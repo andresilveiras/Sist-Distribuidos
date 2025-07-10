@@ -30,22 +30,28 @@ Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fab
 
 ## 🎯 Cenário Atual (Simplificado)
 
-Seguindo a sugestão do escopo, a versão atual implementa um ciclo de produção e reabastecimento completo para validar a arquitetura base:
+Esta versão implementa o cenário da **Fábrica 1 (Fabricação Empurrada)**:
 
-- **1 Fornecedor (`supplier`)**: Escuta o tópico `estoque/reabastecer` e envia partes para o almoxarifado quando recebe uma mensagem.
-- **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de todas as partes.
-- **1 Fábrica com Linha Genérica de Produção (`factory1_line`)**: Consome Partes do almoxarifado em intervalos regulares.
+- **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado.
+- **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de **100 tipos de peças** diferentes.
+- **Fábrica 1 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory1_line1` a `factory1_line5`) configurado para produzir um lote de 60 unidades de um produto específico (Pv1 a Pv5).
 - **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
+- **1 Dashboard de Monitoramento (`dashboard`)**: Uma interface web que exibe o status do sistema em tempo real.
 
 ## 📁 Estrutura dos Arquivos
 
-```
+```plaintext
 Trabalho 2/
 ├── broker/
 │   ├── config/
 │   │   └── mosquitto.conf  # Configurações do broker (logs, etc.)
 │   └── Dockerfile
 ├── entities/
+│   ├── dashboard/
+│   │   ├── templates/
+│   │   │   └── index.html
+│   │   ├── Dockerfile
+│   │   └── main.py         
 │   ├── factory1/line/
 │   │   ├── Dockerfile
 │   │   └── main.py         # Lógica da linha de produção
@@ -72,21 +78,27 @@ Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em su
    ```bash
    docker-compose up --build
    ```
-3.  Observe os logs no terminal. Para encerrar a simulação, pressione `Ctrl+C`.
+3. Acesse o dashboard em seu navegador para monitorar a simulação: **http://localhost:5000**
+4. Observe os logs no terminal. Para encerrar a simulação, pressione `Ctrl+C`.
 
 ## ⚙️ Funcionamento da Simulação
 
-A simulação agora representa um sistema de produção completo:
+A simulação agora representa um sistema de produção completo, com monitoramento visual:
 
-1.  **Produção**: Cada uma das 5 linhas de produção começa a trabalhar em seu lote de 60 produtos. Para montar uma unidade, a linha solicita ao almoxarifado, uma por uma, todas as peças definidas na sua "Lista de Materiais" (BOM).
-2.  **Consumo de Estoque**: O almoxarifado recebe os pedidos de peças via tópico `estoque/check_out`. Se a peça está disponível, ele a envia e notifica a linha via `estoque/status`. Se não há estoque, ele notifica a falta, e a linha de produção para.
-3.  **Feedback e Controle**: A linha de produção só continua a montagem ao receber a confirmação de que a peça foi enviada. Se a produção é parada por falta de uma peça, ela só é retomada quando o almoxarifado avisa que o estoque foi normalizado.
-4.  **Kanban e Reabastecimento**: Quando o estoque de qualquer uma das 100 peças no almoxarifado atinge o nível **VERMELHO**, ele dispara uma ordem de compra no tópico `estoque/reabastecer`.
-5.  **Atuação do Fornecedor**: O fornecedor recebe a ordem, simula um tempo de entrega e envia as peças para o almoxarifado via tópico `estoque/check_in`, completando o ciclo.
+1. **Produção**: Cada uma das 5 linhas de produção começa a trabalhar em seu lote de 60 produtos. Para montar uma unidade, a linha solicita ao almoxarifado, uma por uma, todas as peças definidas na sua "Lista de Materiais" (BOM).
+2. **Consumo de Estoque**: O almoxarifado recebe os pedidos de peças via tópico `estoque/check_out`. Se a peça está disponível, ele a envia e notifica a linha via `estoque/status`. Se não há estoque, ele notifica a falta, e a linha de produção para.
+3. **Feedback e Controle**: A linha de produção só continua a montagem ao receber a confirmação de que a peça foi enviada. Se a produção é parada por falta de uma peça, ela só é retomada quando o almoxarifado avisa que o estoque foi normalizado.
+4. **Kanban e Reabastecimento**: Quando o estoque de qualquer uma das 100 peças no almoxarifado atinge o nível **VERMELHO**, ele dispara uma ordem de compra no tópico `estoque/reabastecer`.
+5. **Atuação do Fornecedor**: O fornecedor recebe a ordem, simula um tempo de entrega e envia as peças para o almoxarifado via tópico `estoque/check_in`, completando o ciclo.
+6. **Monitoramento Visual**: Todas as atualizações de estoque e progresso das linhas são publicadas em tópicos `dashboard/*`. O serviço do dashboard captura essas mensagens e as exibe em tempo real na interface web.
 
 ## 🛠️ Tecnologias
+
+- Python
+- MQTT (Eclipse Mosquitto)
+- Docker / Docker Compose
+- Flask & Flask-SocketIO (para o Dashboard)
 
 ## 🔮 Próximos Passos
 
 - Implementar a Fábrica 2 (Fabricação Puxada).
-- Adicionar um Depósito de Produtos Acabados.
