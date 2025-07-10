@@ -5,7 +5,7 @@ from shared.products import ALL_PARTS, PART_BATCH_SIZES
 # --- Configurações do Almoxarifado ---
 # Cria um inventário com um buffer para cada uma das 100 peças.
 inventory = {
-    part_name: Buffer(part_name, max_capacity=100, yellow_level=60, red_level=30)
+    part_name: Buffer(part_name, max_capacity=100, yellow_level=50, red_level=25)
     for part_name in ALL_PARTS
 }
 # Dicionário para controlar se um pedido de reabastecimento já foi feito para uma peça.
