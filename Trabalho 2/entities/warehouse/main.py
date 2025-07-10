@@ -14,6 +14,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         # Inscreve-se no tópico de check-out quando a conexão é estabelecida
         print("[WAREHOUSE] Conectado ao broker MQTT. Inscrevendo-se nos tópicos.")
         client.subscribe("estoque/check_out")
+        # O almoxarifado também precisa se inscrever no tópico de check_in para receber peças do fornecedor
         client.subscribe("estoque/check_in")
 
 def on_message(client, userdata, msg):
@@ -39,6 +40,8 @@ def on_message(client, userdata, msg):
                 print(f"[WAREHOUSE] Check-out de {quantity} da '{part_name.strip()}' realizado.")
             else:
                 print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name.strip()}'.")
+                # Informa a linha que o estoque acabou
+                client.publish("estoque/status", f"{buffer.part_name}:OUT_OF_STOCK")
             
             # Mostra o status do estoque
             print(f"[WAREHOUSE] Novo status do estoque: {buffer}") 
@@ -52,10 +55,18 @@ def on_message(client, userdata, msg):
                 restock_ordered = True
 
         elif msg.topic == "estoque/check_in":
+            previous_quantity = buffer.current_quantity
             buffer.check_in(quantity)
             print(f"[WAREHOUSE] Check-in de {quantity} da '{part_name.strip()}' realizado.")
             print(f"[WAREHOUSE] Novo status do estoque: {buffer}")
             
+            # Se o estoque estava baixo (insuficiente para um pedido) e agora está OK, notifica a linha.
+            # Assumimos que um pedido padrão é de 5 unidades.
+            REQUEST_QUANTITY = 5 
+            if previous_quantity < REQUEST_QUANTITY and buffer.current_quantity >= REQUEST_QUANTITY:
+                 print(f"[WAREHOUSE] Estoque de '{buffer.part_name}' normalizado. Notificando linhas de produção.")
+                 client.publish("estoque/status", f"{buffer.part_name}:STOCK_OK")
+
             # Se o estoque saiu do vermelho, podemos permitir um novo pedido no futuro
             if buffer.status != "VERMELHO":
                 restock_ordered = False

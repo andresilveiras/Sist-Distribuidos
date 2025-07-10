@@ -1,7 +1,7 @@
 import time
 from shared.mqtt_client import get_client
 
-DELIVERY_TIME_SECONDS = 5 # Simula 5 segundos para a entrega das peças
+DELIVERY_TIME_SECONDS = 15 # Simula 15 segundos para a entrega das peças
 
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
