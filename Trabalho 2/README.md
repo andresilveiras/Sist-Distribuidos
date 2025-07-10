@@ -34,7 +34,7 @@ Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fab
 
 Seguindo a sugestão do escopo, a versão atual implementa um ciclo de produção e reabastecimento completo para validar a arquitetura base:
 
-- **1 Fornecedor (`supplier`)**: Por enquanto, apenas simula sua existência, sem reabastecer o estoque.
+- **1 Fornecedor (`supplier`)**: Escuta o tópico `estoque/reabastecer` e envia partes para o almoxarifado quando recebe uma mensagem.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de um único item (`Parte A`).
 - **1 Fábrica com 1 Linha de Produção (`factory1_line1`)**: Consome `Parte A` do almoxarifado em intervalos regulares.
 - **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
