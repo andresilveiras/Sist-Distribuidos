@@ -1,3 +1,5 @@
+import random
+
 # Define a lista de todas as 100 peças únicas disponíveis.
 ALL_PARTS = [f"Part-{i:03d}" for i in range(1, 101)]
 
@@ -20,4 +22,16 @@ VARIATION_KITS = {
 BOM = {
     product: BASE_KIT + variation_parts
     for product, variation_parts in VARIATION_KITS.items()
+}
+
+# Define o tamanho do lote de reabastecimento para cada peça.
+# Cada peça terá um lote com uma quantidade aleatória entre 10 e 99.
+PART_BATCH_SIZES = {
+    part: random.randint(10, 99) for part in ALL_PARTS
+}
+
+# Define o tempo de entrega (em segundos) para cada peça.
+# Cada peça terá um tempo de entrega aleatório entre 5 e 15 segundos.
+PART_DELIVERY_TIMES = {
+    part: random.randint(5, 15) for part in ALL_PARTS
 }
