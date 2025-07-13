@@ -1,6 +1,6 @@
 services:
 
-  # Broker MQTT
+  # --- Broker MQTT ---
   broker:
     container_name: mqtt_broker
     build: ./broker
@@ -18,7 +18,18 @@ services:
       timeout: 5s
       retries: 5
 
-# Estoque
+# --- Central de vendas (p/ fabricação puxada) ---
+  sales_center:
+    build:
+      context: .
+      dockerfile: entities/sales_center/Dockerfile
+    container_name: sales_center
+    depends_on:
+      broker:
+        condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
+  
+
+# --- Estoque / Almoxarifado ---
   warehouse: 
     build:
       context: .
@@ -28,7 +39,7 @@ services:
       broker:
         condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
 
-# Fornecedor
+# --- Fornecedor ---
   supplier:
     build:
       context: .
@@ -49,6 +60,7 @@ services:
     depends_on:
       broker:
         condition: service_healthy
+
 # --- Fábrica 1 ---
   factory1_line_base: &factory1_line_base
     build:
@@ -57,7 +69,8 @@ services:
     depends_on:
       broker:
         condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
-
+  
+  # --- Linha de produção 1 da Fabrica 1 --
   factory1_line1:
     <<: *factory1_line_base
     container_name: factory1_line1
@@ -65,7 +78,8 @@ services:
       - LINE_ID=F1-L1
       - PRODUCT_ID=Pv1
       - BATCH_SIZE=60
-
+  
+  # --- Linha de produção 2 da Fabrica 1 --
   factory1_line2:
     <<: *factory1_line_base
     container_name: factory1_line2
@@ -73,7 +87,8 @@ services:
       - LINE_ID=F1-L2
       - PRODUCT_ID=Pv2
       - BATCH_SIZE=60
-
+  
+  # --- Linha de produção 3 da Fabrica 1 --
   factory1_line3:
     <<: *factory1_line_base
     container_name: factory1_line3
@@ -81,7 +96,8 @@ services:
       - LINE_ID=F1-L3
       - PRODUCT_ID=Pv3
       - BATCH_SIZE=60
-
+  
+  # --- Linha de produção 4 da Fabrica 1 --
   factory1_line4:
     <<: *factory1_line_base
     container_name: factory1_line4
@@ -89,7 +105,8 @@ services:
       - LINE_ID=F1-L4
       - PRODUCT_ID=Pv4
       - BATCH_SIZE=60
-
+  
+  # --- Linha de produção 5 da Fabrica 1 --
   factory1_line5:
     <<: *factory1_line_base
     container_name: factory1_line5
