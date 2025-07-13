@@ -15,6 +15,16 @@ inventory_state = {
 # Dicionário para armazenar o estado de cada linha de produção
 lines_state = {}
 
+# --- Funções Auxiliares ---
+def calculate_and_emit_inventory_summary():
+    """Calcula a contagem de itens por status e emite para todos os clientes."""
+    counts = {"VERDE": 0, "AMARELO": 0, "VERMELHO": 0}
+    for part_data in inventory_state.values():
+        status = part_data.get("status", "VERDE")
+        if status in counts:
+            counts[status] += 1
+    socketio.emit('inventory_summary_update', counts)
+
 # --- Lógica do MQTT ---
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
@@ -42,6 +52,8 @@ def on_message(client, userdata, msg):
                     'quantity': int(quantity),
                     'status': status
                 })
+                # Recalcula e emite o resumo do inventário
+                calculate_and_emit_inventory_summary()
             except (ValueError, IndexError):
                 print(f"[DASHBOARD] Mensagem de inventário mal formatada: {payload}")
 
@@ -73,6 +85,8 @@ def handle_connect():
     print("[DASHBOARD] Novo cliente web conectado. Enviando estado inicial.")
     # Envia o estado do inventário e das linhas
     socketio.emit('initial_state', {'inventory': inventory_state, 'lines': lines_state})
+    # Envia o resumo inicial do inventário para o novo cliente
+    calculate_and_emit_inventory_summary()
 
 def mqtt_thread_function():
     """Função que será executada em background para o cliente MQTT."""

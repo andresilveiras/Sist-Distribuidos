@@ -82,7 +82,6 @@ def on_message(client, userdata, msg):
             # Se o estoque saiu do vermelho, podemos permitir um novo pedido no futuro
             if buffer.status != "VERMELHO":
                 restock_ordered[part_name] = False
-                print("[WAREHOUSE] Nível de estoque normalizado.")
 
     except (ValueError, IndexError) as e:
         print(f"[WAREHOUSE] ERRO: Não foi possível processar a mensagem '{payload}': {e}")
