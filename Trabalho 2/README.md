@@ -30,13 +30,14 @@ Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fab
 
 ## 🎯 Cenário Atual (Simplificado)
 
-Esta versão implementa o cenário da **Fábrica 1 (Fabricação Empurrada)**:
+Esta versão implementa um cenário híbrido, combinando a **Fábrica 1 (Fabricação Empurrada)** com a simulação de demanda que irá "puxar" a produção da futura Fábrica 2:
 
-- **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado.
+- **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado. Atualmente trabalha com 5 workers simultâneos em uma pool de threads.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de **100 tipos de peças** diferentes.
 - **Fábrica 1 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory1_line1` a `factory1_line5`) configurado para produzir um lote de 60 unidades de um produto específico (Pv1 a Pv5).
+- **1 Centro de Vendas (`sales_center`)**: Simula a demanda diária de clientes, gerencia o estoque de produtos acabados e emite ordens de produção para a Fábrica 2.
 - **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
-- **1 Dashboard de Monitoramento (`dashboard`)**: Uma interface web que exibe o status do sistema em tempo real.
+- **1 Dashboard de Monitoramento (`dashboard`)**: Uma interface web que exibe o status do sistema em tempo real, incluindo o estoque de peças, o progresso das linhas e o estoque de produtos acabados.
 
 ## 📁 Estrutura dos Arquivos
 
@@ -48,13 +49,18 @@ Trabalho 2/
 │   └── Dockerfile
 ├── entities/
 │   ├── dashboard/
+│   │   ├── static/
+│   │   │   └── style.css   # Estilo do dashboard em CSS   
 │   │   ├── templates/
-│   │   │   └── index.html
+│   │   │   └── index.html  # Layout do dashboard em HTML
 │   │   ├── Dockerfile
-│   │   └── main.py         
+│   │   └── main.py         # Lógica do dashboard em Python (Flask)
 │   ├── factory1/line/
 │   │   ├── Dockerfile
-│   │   └── main.py         # Lógica da linha de produção
+│   │   └── main.py         # Lógica da linha de produção da Fábrica 1
+│   ├── sales_center/
+│   │   ├── Dockerfile
+│   │   └── main.py         # Lógica de simulação de vendas e demanda
 │   ├── supplier/
 │   │   ├── Dockerfile
 │   │   └── main.py         # Lógica do fornecedor
@@ -63,7 +69,7 @@ Trabalho 2/
 │       └── main.py         # Lógica do almoxarifado
 ├── shared/
 │   ├── buffer.py           # Classe do Buffer de estoque com lógica Kanban
-│   └── mqtt_client.py      # Helper para criar clientes MQTT
+│   ├── mqtt_client.py      # Helper para criar clientes MQTT
 │   └── products.py         # Definição dos produtos e suas peças (BOM) 
 ├── docker-compose.yml      # Orquestra todos os contêineres
 └── README.md               # Este arquivo
@@ -83,14 +89,18 @@ Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em su
 
 ## ⚙️ Funcionamento da Simulação
 
-A simulação agora representa um sistema de produção completo, com monitoramento visual:
+A simulação agora representa um ciclo de produção e consumo mais completo, com um "relógio" central ditando o ritmo:
 
-1. **Produção**: Cada uma das 5 linhas de produção começa a trabalhar em seu lote de 60 produtos. Para montar uma unidade, a linha solicita ao almoxarifado, uma por uma, todas as peças definidas na sua "Lista de Materiais" (BOM).
-2. **Consumo de Estoque**: O almoxarifado recebe os pedidos de peças via tópico `estoque/check_out`. Se a peça está disponível, ele a envia e notifica a linha via `estoque/status`. Se não há estoque, ele notifica a falta, e a linha de produção para.
-3. **Feedback e Controle**: A linha de produção só continua a montagem ao receber a confirmação de que a peça foi enviada. Se a produção é parada por falta de uma peça, ela só é retomada quando o almoxarifado avisa que o estoque foi normalizado.
-4. **Kanban e Reabastecimento**: Quando o estoque de qualquer uma das 100 peças no almoxarifado atinge o nível **VERMELHO**, ele dispara uma ordem de compra no tópico `estoque/reabastecer`.
-5. **Atuação do Fornecedor**: O fornecedor recebe a ordem, simula um tempo de entrega e envia as peças para o almoxarifado via tópico `estoque/check_in`, completando o ciclo.
-6. **Monitoramento Visual**: Todas as atualizações de estoque e progresso das linhas são publicadas em tópicos `dashboard/*`. O serviço do dashboard captura essas mensagens e as exibe em tempo real na interface web.
+1. **O "Dia" Começa**: O `sales_center` atua como o relógio do sistema. A cada "dia" (intervalo de tempo configurável), ele publica uma mensagem `simulation/new_day`.
+2. **Produção Empurrada (Fábrica 1)**: Ao receber o sinal de "novo dia", as 5 linhas da Fábrica 1 iniciam a produção de seus lotes fixos de 60 produtos. Para cada unidade, elas solicitam as peças necessárias ao `warehouse`.
+3. **Demanda e Vendas**: Simultaneamente, o `sales_center` simula vendas de produtos, decrementando o estoque de produtos acabados.
+4. **Reabastecimento do Estoque de Produtos**: Quando uma linha da Fábrica 1 conclui seu lote, ela notifica o `sales_center`, que adiciona os produtos recém-fabricados ao estoque central.
+5. **Produção Puxada (Ordens para Fábrica 2)**: Após simular as vendas, o `sales_center` verifica o nível do estoque de produtos acabados. Se algum produto está abaixo da meta, ele emite uma ordem de produção no tópico `factory2/production_order`. Esta ordem será consumida pela Fábrica 2 no futuro.
+6. **Ciclo do Almoxarifado e Fornecedor**:
+    - O `warehouse` atende aos pedidos de peças das linhas de produção.
+    - Quando o estoque de uma peça fica baixo (nível AMARELO/VERMELHO), o `warehouse` emite uma ordem de reabastecimento para o `supplier`.
+    - O `supplier` processa a ordem, simula um tempo de entrega e envia as peças para o `warehouse`, fechando o ciclo de suprimentos.
+7. **Monitoramento Visual**: Todas as atualizações (estoque de peças, progresso das linhas, estoque de produtos acabados) são publicadas em tópicos `dashboard/*`. O serviço do `dashboard` captura essas mensagens e as exibe em tempo real na interface web.
 
 ## 🛠️ Tecnologias
 

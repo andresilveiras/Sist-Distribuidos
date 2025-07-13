@@ -1,10 +1,11 @@
 import time
 import random
+from datetime import datetime
 from shared.mqtt_client import get_client
 from shared.products import BOM
 
 # --- Configurações do Centro de Vendas ---
-SIMULATION_DAY_DURATION_SECONDS = 20  # A cada 20 segundos, um "novo dia" de vendas ocorre
+SIMULATION_DAY_DURATION_SECONDS = 300  # A cada 5 minutos, um "novo dia" de vendas ocorre
 PRODUCT_IDS = list(BOM.keys())
 
 # Estoque inicial de produtos acabados e o nível alvo que queremos manter.
@@ -21,6 +22,22 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print(f"[SALES_CENTER] Falha ao conectar ao MQTT: {reason_code}")
         return
     print("[SALES_CENTER] Conectado ao Broker MQTT.")
+    # Inscreve-se no tópico para saber quando um lote de produção foi concluído.
+    client.subscribe("factory2/order_completed")
+
+def on_message(client, userdata, msg):
+    """Processa mensagens de lotes de produção concluídos."""
+    if msg.topic == "factory2/order_completed":
+        payload = msg.payload.decode('utf-8')
+        try:
+            product_id, quantity_str = payload.split(':')
+            quantity = int(quantity_str)
+            if product_id in finished_goods_inventory:
+                print(f"[SALES_CENTER] Recebido lote de {quantity} unidades de '{product_id}' da produção.")
+                finished_goods_inventory[product_id]["current_stock"] += quantity
+                publish_stock_update(client, product_id, finished_goods_inventory[product_id])
+        except (ValueError, IndexError) as e:
+            print(f"[SALES_CENTER] ERRO: Mensagem de lote concluído mal formatada: '{payload}': {e}")
 
 def get_product_status(stock_info):
     """Calcula o status do estoque de um produto acabado (VERDE, AMARELO, VERMELHO)."""
@@ -41,6 +58,10 @@ def simulate_daily_sales_and_production_orders(client):
     """
     Simula um dia de vendas, atualiza o estoque e gera ordens de produção se necessário.
     """
+    # Anuncia o início de um novo dia para todas as entidades que precisam saber
+    print("\n--- [SALES_CENTER] Anunciando novo dia de produção para as fábricas. ---")
+    client.publish("simulation/new_day", f"start_day:{datetime.now().isoformat()}")
+
     print("\n--- [SALES_CENTER] Novo dia de simulação ---")
 
     # 1. Simular vendas para produtos aleatórios
@@ -71,14 +92,9 @@ def simulate_daily_sales_and_production_orders(client):
             
             # Publica a ordem de produção para a Fábrica 2
             client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
-            
-            # Atualiza o estoque para refletir que a produção foi "encomendada"
-            stock_info["current_stock"] += quantity_to_produce
-            # Publica a atualização para o dashboard
-            publish_stock_update(client, product_id, stock_info)
 
 if __name__ == "__main__":
-    client = get_client(on_connect_callback=on_connect)
+    client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
     client.loop_start() # Inicia o loop em uma thread separada
 
     # Publica o estado inicial de todos os produtos para o dashboard

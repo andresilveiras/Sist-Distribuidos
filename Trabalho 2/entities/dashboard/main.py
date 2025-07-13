@@ -1,7 +1,7 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from shared.mqtt_client import get_client
-from shared.products import ALL_PARTS
+from shared.products import ALL_PARTS, BOM
 
 # --- Configuração do Flask e SocketIO ---
 app = Flask(__name__)
@@ -14,8 +14,11 @@ inventory_state = {
 }
 # Dicionário para armazenar o estado de cada linha de produção
 lines_state = {}
-# Dicionário para armazenar o estado dos produtos acabados
-finished_goods_state = {}
+# Dicionário para armazenar o estado dos produtos acabados.
+# Pré-inicializamos com valores padrão para garantir que os cards apareçam no início.
+finished_goods_state = {
+    product_id: {"current": 0, "target": 0, "sold": 0, "status": "VERMELHO"} for product_id in BOM.keys()
+}
 
 # --- Funções Auxiliares ---
 def calculate_and_emit_inventory_summary():
