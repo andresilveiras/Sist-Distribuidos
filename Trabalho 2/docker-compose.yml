@@ -114,3 +114,50 @@ services:
       - LINE_ID=F1-L5
       - PRODUCT_ID=Pv5
       - BATCH_SIZE=60
+
+# --- Fábrica 2 ---
+  factory2_line_base: &factory2_line_base
+    build:
+      context: .
+      dockerfile: entities/factory2/line/Dockerfile
+    depends_on:
+      broker:
+        condition: service_healthy # Verifica se o broker está funcionando antes de iniciar o serviço
+  
+  
+  # --- Linha de produção 1 da Fabrica 2 ---
+  factory2_line1:
+    <<: *factory2_line_base
+    container_name: factory2_line1
+    environment:
+      - LINE_ID=F2-L1
+  
+  # --- Linha de produção 2 da Fabrica 2 ---
+  factory2_line2:
+    <<: *factory2_line_base
+    container_name: factory2_line2
+    environment:
+      - LINE_ID=F2-L2
+  
+  # --- Linha de produção 3 da Fabrica 2 ---
+  factory2_line3:
+    <<: *factory2_line_base
+    container_name: factory2_line3
+    environment:
+      - LINE_ID=F2-L3
+  
+  # --- Linha de produção 4 da Fabrica 2 ---
+  factory2_line4:
+    <<: *factory2_line_base
+    container_name: factory2_line4
+    environment:
+      - LINE_ID=F2-L4
+  
+  # --- Linha de produção 5 da Fabrica 2 ---
+  factory2_line5:
+    <<: *factory2_line_base
+    container_name: factory2_line5
+    environment:
+      - LINE_ID=F2-L5
+
+# Você pode adicionar mais linhas (F2-L6, F2-L7, F2-L8) seguindo o mesmo padrão.

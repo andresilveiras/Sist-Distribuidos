@@ -33,5 +33,5 @@ PART_BATCH_SIZES = {
 # Define o tempo de entrega (em segundos) para cada peça.
 # Cada peça terá um tempo de entrega aleatório entre 5 e 15 segundos.
 PART_DELIVERY_TIMES = {
-    part: random.randint(5, 15) for part in ALL_PARTS
+    part: random.randint(1, 5) for part in ALL_PARTS
 }

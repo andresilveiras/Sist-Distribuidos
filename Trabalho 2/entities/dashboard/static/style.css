@@ -5,6 +5,7 @@ h1, h2 { text-align: center; color: #444; }
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
+    justify-content: center;
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;

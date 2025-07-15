@@ -5,14 +5,18 @@ from shared.mqtt_client import get_client
 from shared.products import BOM
 
 # --- Configurações do Centro de Vendas ---
-SIMULATION_DAY_DURATION_SECONDS = 300  # A cada 5 minutos, um "novo dia" de vendas ocorre
+SIMULATION_DAY_DURATION_SECONDS = 600  # A cada 10 minutos, um "novo dia" de vendas ocorre
 PRODUCT_IDS = list(BOM.keys())
 
 # Estoque inicial de produtos acabados e o nível alvo que queremos manter.
 finished_goods_inventory = {
     product_id: {
-        "current_stock": 50,
-        "target_stock": 50,
+        # --- Escolha o cenário de simulação ---
+        # Opção 1: Simulação de Estado Estacionário (Recomendado para testar a resiliência)
+        "current_stock": 80,
+        # Opção 2: Simulação de Partida a Frio (Bom para ver o sistema inicializar)
+        # "current_stock": 0,
+        "target_stock": 100,
         "total_sold": 0
     } for product_id in PRODUCT_IDS
 }
@@ -22,12 +26,18 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print(f"[SALES_CENTER] Falha ao conectar ao MQTT: {reason_code}")
         return
     print("[SALES_CENTER] Conectado ao Broker MQTT.")
-    # Inscreve-se no tópico para saber quando um lote de produção foi concluído.
-    client.subscribe("factory2/order_completed")
+    # Inscreve-se no tópico para saber quando um lote de produção foi concluído
+    client.subscribe("production/batch_completed")
+
+    # Publica o estado inicial de todos os produtos para o dashboard APÓS a conexão
+    # Isso garante que as mensagens não sejam perdidas.
+    print("[SALES_CENTER] Publicando estado inicial do estoque de produtos acabados.")
+    for product_id, stock_info in finished_goods_inventory.items():
+        publish_stock_update(client, product_id, stock_info)
 
 def on_message(client, userdata, msg):
     """Processa mensagens de lotes de produção concluídos."""
-    if msg.topic == "factory2/order_completed":
+    if msg.topic == "production/batch_completed":
         payload = msg.payload.decode('utf-8')
         try:
             product_id, quantity_str = payload.split(':')
@@ -43,8 +53,8 @@ def get_product_status(stock_info):
     """Calcula o status do estoque de um produto acabado (VERDE, AMARELO, VERMELHO)."""
     if stock_info["target_stock"] == 0: return "VERDE"
     percentage = (stock_info["current_stock"] / stock_info["target_stock"]) * 100
-    if percentage <= 30: return "VERMELHO"
-    if percentage < 75: return "AMARELO"
+    if percentage <= 25: return "VERMELHO"
+    if percentage < 50: return "AMARELO"
     return "VERDE"
 
 def publish_stock_update(client, product_id, stock_info):
@@ -52,7 +62,7 @@ def publish_stock_update(client, product_id, stock_info):
     status = get_product_status(stock_info)
     payload = (f"{stock_info['current_stock']}:{stock_info['target_stock']}:"
                f"{stock_info['total_sold']}:{status}")
-    client.publish(f"dashboard/finished_goods/{product_id}", payload)
+    client.publish(f"dashboard/finished_goods/{product_id}", payload, retain=True)
 
 def simulate_daily_sales_and_production_orders(client):
     """
@@ -64,8 +74,12 @@ def simulate_daily_sales_and_production_orders(client):
 
     print("\n--- [SALES_CENTER] Novo dia de simulação ---")
 
-    # 1. Simular vendas para produtos aleatórios
-    num_sales = random.randint(1, 3)
+    # 1. Simular vendas para produtos aleatórios, espaçadas ao longo do "dia"
+    num_sales = random.randint(2, 10)
+    if num_sales > 0:
+        # Calcula o intervalo entre as vendas para preencher a duração do dia
+        delay_between_sales = SIMULATION_DAY_DURATION_SECONDS / num_sales
+    
     for _ in range(num_sales):
         product_sold = random.choice(PRODUCT_IDS)
         quantity_sold = random.randint(5, 25)
@@ -81,11 +95,16 @@ def simulate_daily_sales_and_production_orders(client):
         print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_sold}' agora é: {stock['current_stock']}")
         # Publica a atualização para o dashboard
         publish_stock_update(client, product_sold, stock)
+        
+        # Aguarda um pouco antes da próxima venda, simulando o passar do tempo
+        time.sleep(delay_between_sales)
 
     # 2. Verificar necessidade de reabastecimento e emitir ordens de produção
     print("[SALES_CENTER] Verificando necessidade de produção...")
     for product_id, stock_info in finished_goods_inventory.items():
-        if stock_info["current_stock"] < stock_info["target_stock"]:
+        # A Fábrica 2 (puxada) só deve ser acionada em caso de emergência (estoque VERMELHO)
+        status = get_product_status(stock_info)
+        if status == "AMARELO" or status == "VERMELHO":
             quantity_to_produce = stock_info["target_stock"] - stock_info["current_stock"]
             
             print(f"[SALES_CENTER] Estoque de '{product_id}' baixo! Gerando ordem de produção para {quantity_to_produce} unidades.")
@@ -97,11 +116,7 @@ if __name__ == "__main__":
     client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
     client.loop_start() # Inicia o loop em uma thread separada
 
-    # Publica o estado inicial de todos os produtos para o dashboard
-    print("[SALES_CENTER] Publicando estado inicial do estoque de produtos acabados.")
-    for product_id, stock_info in finished_goods_inventory.items():
-        publish_stock_update(client, product_id, stock_info)
-
     while True:
         simulate_daily_sales_and_production_orders(client)
-        time.sleep(SIMULATION_DAY_DURATION_SECONDS)
+        # Pequena pausa antes de iniciar o próximo ciclo diário
+        time.sleep(1)

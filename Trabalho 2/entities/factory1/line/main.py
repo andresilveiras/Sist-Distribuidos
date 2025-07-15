@@ -3,12 +3,16 @@ import os
 import sys
 from shared.mqtt_client import get_client
 from shared.products import BOM
+import threading
 
 # --- Configurações da Linha ---
-LINE_ID = os.getenv("LINE_ID", "Desconhecida")
+LINE_ID = os.getenv("LINE_ID")
 PRODUCT_ID = os.getenv("PRODUCT_ID")
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", "60"))
 
+if not LINE_ID:
+    print(f"[LINE] ERRO: Variável de ambiente LINE_ID não definida.")
+    sys.exit(1)
 if not PRODUCT_ID or PRODUCT_ID not in BOM:
     print(f"[LINE {LINE_ID}] ERRO: Variável de ambiente PRODUCT_ID inválida ou não definida.")
     sys.exit(1)
@@ -16,6 +20,7 @@ if not PRODUCT_ID or PRODUCT_ID not in BOM:
 # --- Estado da Linha ---
 production_halted = False
 start_new_batch = True # Flag para controlar o início de um novo lote
+is_producing = False # Flag para evitar iniciar um novo lote enquanto um já está em andamento
 
 def publish_line_status(client, current_batch_count, status_text):
     """Publica o estado atual da linha para o dashboard."""
@@ -35,12 +40,13 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 def on_message(client, userdata, msg):
     """Processa mensagens de status do almoxarifado."""
-    global production_halted, start_new_batch
+    global production_halted, start_new_batch, is_producing
     payload = msg.payload.decode('utf-8')
     
     if msg.topic == "simulation/new_day":
-        print(f"[LINE {LINE_ID}] Sinal de 'novo dia' recebido. Iniciando novo lote de produção.")
-        start_new_batch = True
+        if not is_producing:
+            print(f"[LINE {LINE_ID}] Sinal de 'novo dia' recebido. Preparando para iniciar novo lote.")
+            start_new_batch = True
     elif msg.topic == "estoque/status":
         try:
             part_name, status = payload.split(':')
@@ -61,41 +67,49 @@ def on_message(client, userdata, msg):
 
 def run_production_batch(client):
     """Executa a lógica de produção para um lote completo."""
-    global production_halted
-    current_batch_count = 0
-    
-    while current_batch_count < BATCH_SIZE:
-        parts_needed_for_current_unit = set(BOM[PRODUCT_ID])
-        publish_line_status(client, current_batch_count, "Produzindo")
+    global production_halted, is_producing
+    try:
+        current_batch_count = 0
+        print(f"[LINE {LINE_ID}] Iniciando novo lote de produção.")
+        
+        while current_batch_count < BATCH_SIZE:
+            parts_needed_for_current_unit = set(BOM[PRODUCT_ID])
+            publish_line_status(client, current_batch_count, "Produzindo")
 
-        while parts_needed_for_current_unit:
-            if production_halted:
-                part_name_faltando = next(iter(parts_needed_for_current_unit)) # Apenas para exibir
-                publish_line_status(client, current_batch_count, f"Parada - Falta {part_name_faltando}")
-                time.sleep(5)
-                continue
+            while parts_needed_for_current_unit:
+                if production_halted:
+                    part_name_faltando = next(iter(parts_needed_for_current_unit)) # Apenas para exibir
+                    publish_line_status(client, current_batch_count, f"Parada - Falta {part_name_faltando}")
+                    time.sleep(1)
+                    continue
 
-            part_to_request = parts_needed_for_current_unit.pop()
-            client.publish("estoque/check_out", f"{part_to_request}:1")
-            time.sleep(0.5)
+                part_to_request = parts_needed_for_current_unit.pop()
+                client.publish("estoque/check_out", f"{part_to_request}:1")
+                time.sleep(0.1)
 
-        current_batch_count += 1
-        print(f"[LINE {LINE_ID}] PRODUTO {PRODUCT_ID} MONTADO! ({current_batch_count}/{BATCH_SIZE})")
+            current_batch_count += 1
+            print(f"[LINE {LINE_ID}] PRODUTO {PRODUCT_ID} MONTADO! ({current_batch_count}/{BATCH_SIZE})")
+            # Notifica a conclusão de CADA unidade em tempo real.
+            client.publish("production/batch_completed", f"{PRODUCT_ID}:1")
 
-    # Lote concluído
-    print(f"[{LINE_ID}] LOTE CONCLUÍDO: {BATCH_SIZE} unidades de '{PRODUCT_ID}' produzidas.")
-    publish_line_status(client, current_batch_count, "Lote Concluído. Aguardando...")
-    # Notifica o sistema que um novo lote de produtos acabados está disponível
-    print(f"[{LINE_ID}] Notificando conclusão do lote ao centro de vendas.")
-    client.publish("factory2/order_completed", f"{PRODUCT_ID}:{BATCH_SIZE}")
+        # Lote concluído
+        print(f"[{LINE_ID}] LOTE CONCLUÍDO: {BATCH_SIZE} unidades de '{PRODUCT_ID}' produzidas.")
+        publish_line_status(client, current_batch_count, "Lote Concluído. Aguardando...")
+    finally:
+        # Garante que a linha seja marcada como não produzindo, mesmo se ocorrer um erro
+        is_producing = False
+        print(f"[{LINE_ID}] Linha liberada. Aguardando próximo dia.")
 
 client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
 client.loop_start()
 
 while True:
-    if start_new_batch:
-        run_production_batch(client)
+    if start_new_batch and not is_producing:
+        is_producing = True
         start_new_batch = False # Reseta a flag para esperar o próximo dia
+        thread = threading.Thread(target=run_production_batch, args=(client,))
+        thread.daemon = True
+        thread.start()
     else:
         # Aguardando o sinal para começar um novo dia
         time.sleep(1)
