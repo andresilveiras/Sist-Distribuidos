@@ -7,7 +7,7 @@ from shared.products import BOM
 
 # --- Configurações do Centro de Vendas ---
 SIMULATION_DAY_DURATION_SECONDS = 600  # A cada 10 minutos, um "novo dia" de vendas ocorre
-SALE_EVENT_INTERVAL_SECONDS = 10  # Um novo evento de venda ocorre a cada 10 segundos
+SALE_EVENT_INTERVAL_SECONDS = 15  # Um novo evento de venda ocorre a cada 15 segundos
 PRODUCT_IDS = list(BOM.keys())
 
 # Estoque inicial de produtos acabados e o nível alvo que queremos manter.
@@ -15,7 +15,7 @@ finished_goods_inventory = {
     product_id: {
         # --- Escolha o cenário de simulação ---
         # Opção 1: Simulação de Estado Estacionário (Recomendado para testar a resiliência)
-        "current_stock": 60,
+        "current_stock": 80,
         # Opção 2: Simulação de Partida a Frio (Bom para ver o sistema inicializar)
         # "current_stock": 0,
         "target_stock": 100,
@@ -76,7 +76,6 @@ def publish_stock_update(client, product_id, stock_info):
 Simula o ciclo diário, publicando o sinal de "novo dia" para a Fábrica 1., utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
 """
 def simulate_daily_cycle(client, lock):
-    while True:
         print("\n--- [SALES_CENTER] Anunciando novo dia de produção para as fábricas. ---")
         client.publish("simulation/new_day", f"start_day:{datetime.now().isoformat()}")
         time.sleep(SIMULATION_DAY_DURATION_SECONDS)
@@ -85,14 +84,13 @@ def simulate_daily_cycle(client, lock):
 Simula um único evento de venda, que pode conter pedidos para múltiplos produtos, utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
 """
 def simulate_sale_event(client, lock):
-    while True:
         print(f"\n--- [SALES_CENTER] Evento de venda: {datetime.now().isoformat()} ---")
 
         # 1. Simular um pedido de cliente com 1 a 5 tipos de produtos diferentes
         num_products_in_order = random.randint(1, 5)
         for _ in range(num_products_in_order):
             product_sold = random.choice(PRODUCT_IDS)
-            quantity_sold = random.randint(5, 25)
+            quantity_sold = random.randint(1, 10)
             
             stock = finished_goods_inventory[product_sold]
             
@@ -104,8 +102,7 @@ def simulate_sale_event(client, lock):
             stock["total_sold"] += actual_sold
             print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_sold}' agora é: {stock['current_stock']}")
             # Publica a atualização para o dashboard
-            publish_stock_update(client, product_sold, stock)    
-            time.sleep(SALE_EVENT_INTERVAL_SECONDS)
+            publish_stock_update(client, product_sold, stock)     
 
 """
 Verifica a necessidade de produção e emite ordens para a Fábrica 2.
@@ -117,7 +114,7 @@ def check_and_request_production(client):
         # A quantidade a produzir é o que falta para atingir o estoque alvo.
         status = get_product_status(stock_info)
         if status == "AMARELO" or status == "VERMELHO":
-            quantity_to_produce = stock_info["target_stock"] - stock_info["current_stock"]
+            quantity_to_produce = 25
             if quantity_to_produce > 0:
                 print(f"[SALES_CENTER] Estoque de '{product_id}' baixo! Gerando ordem de produção para {quantity_to_produce} unidades.")
                 # Publica a ordem de produção para a Fábrica 2
@@ -144,3 +141,4 @@ if __name__ == "__main__":
         # Verificamos a necessidade de produção após cada ciclo de vendas (agora rodando independentemente)
         with mqtt_lock:  # Garante acesso exclusivo ao cliente MQTT
             check_and_request_production(client)
+        time.sleep(SALE_EVENT_INTERVAL_SECONDS)
