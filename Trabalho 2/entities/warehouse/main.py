@@ -48,7 +48,7 @@ def on_message(client, userdata, msg):
             if buffer.check_out(quantity):
                 client.publish("estoque/status", f"{part_name}:CHECKOUT_SUCCESS")
             else:
-                print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name}'.")
+                print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente de {part_name}.")
                 # Informa a linha que o estoque acabou
                 client.publish("estoque/status", f"{part_name}:OUT_OF_STOCK")
             
@@ -57,13 +57,13 @@ def on_message(client, userdata, msg):
 
             # Verifica se precisa reabastecer
             if (buffer.status == "AMARELO" and not restock_ordered[part_name]):
-                print(f"[WAREHOUSE] Solicitando novo lote de '{part_name}' ao fornecedor.")
+                print(f"[WAREHOUSE] Solicitando novo lote de {part_name} ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
                 restock_ordered[part_name] = True
             
             if buffer.status == "VERMELHO":
-                print(f"[WAREHOUSE] NÍVEL CRÍTICO ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
+                print(f"[WAREHOUSE] NÍVEL CRÍTICO DE {part_name} ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
 
@@ -78,7 +78,7 @@ def on_message(client, userdata, msg):
             
             # Se o estoque estava baixo (insuficiente para um pedido) e agora está OK, notifica a linha.
             if previous_quantity == 0 and buffer.current_quantity > PART_BATCH_SIZES[part_name]:
-                 print(f"[WAREHOUSE] Estoque de '{part_name}' normalizado. Notificando linhas de produção.")
+                 print(f"[WAREHOUSE] Estoque de {part_name} normalizado. Notificando linhas de produção.")
                  client.publish("estoque/status", f"{part_name}:STOCK_OK")
                  restock_ordered[part_name] = False
 
