@@ -5,73 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Produção</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
-        h1, h2 { text-align: center; color: #444; }
-        .container { max-width: 1200px; margin: auto; }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-        }
-        .grid-item {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            text-align: center;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-        .grid-item .part-name { font-weight: bold; margin-bottom: 5px; }
-        .grid-item .part-quantity { font-size: 16px; }
-        .status-VERDE { background-color: #d4edda; border-color: #c3e6cb; }
-        .status-AMARELO { background-color: #fff3cd; border-color: #ffeeba; }
-        .status-VERMELHO { background-color: #f8d7da; border-color: #f5c6cb; }
-
-        .lines-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        .line-item {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .line-item h3 { margin-top: 0; }
-        .progress-bar {
-            width: 100%;
-            background-color: #e9ecef;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-bar-fill {
-            height: 20px;
-            background-color: #0d6efd;
-            width: 0%;
-            text-align: center;
-            color: white;
-            line-height: 20px;
-            transition: width 0.5s ease;
-        }
-        .line-status { margin-top: 10px; font-style: italic; color: #666; }
-        .line-progress-text { text-align: center; font-weight: bold; margin-top: 5px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>Dashboard de Produção</h1>
 
         <h2>Linhas de Produção - Fábrica 1</h2>
+        <div id="lines-grid-f1" class="lines-container"></div>
+
+        <h2>Linhas de Produção - Fábrica 2</h2>
         <div id="lines-grid" class="lines-container"></div>
 
+        <h2>Estoque de Produtos Acabados</h2>
+        <div id="finished-goods-grid" class="grid-container"></div>
+
         <h2>Status do Almoxarifado</h2>
+        <div id="inventory-summary" class="inventory-summary-container"></div>
         <div id="inventory-grid" class="grid-container"></div>
     </div>
 
@@ -97,22 +47,44 @@
                 `;
             }
 
-            const linesGrid = document.getElementById('lines-grid');
-            linesGrid.innerHTML = '';
+            const linesGridF1 = document.getElementById('lines-grid-f1');
+            const linesGridF2 = document.getElementById('lines-grid'); // Mantendo o ID antigo para F2 por simplicidade
+            linesGridF1.innerHTML = '';
+            linesGridF2.innerHTML = '';
+
             // Ordena as linhas para uma exibição consistente
             const sortedLineIds = Object.keys(data.lines).sort();
             for (const lineId of sortedLineIds) {
                  const line = data.lines[lineId];
-                 const percentage = (line.completed / line.total) * 100;
-                 linesGrid.innerHTML += `
+                 const percentage = line.total > 0 ? (line.completed / line.total) * 100 : 0;
+                 const lineHtml = `
                     <div id="line-${lineId}" class="line-item">
                         <h3>Linha ${lineId}</h3>
                         <p>Produto: <strong id="line-prod-${lineId}">${line.product_id}</strong></p>
                         <div class="progress-bar">
                             <div id="line-progress-${lineId}" class="progress-bar-fill" style="width: ${percentage}%">${Math.round(percentage)}%</div>
                         </div>
-                        <p class="line-progress-text" id="line-count-${lineId}">${line.completed} / ${line.total} unidades</p>
+                        <p class="line-progress-text" id="line-count-${lineId}">${line.completed} / ${line.total}</p>
                         <p class="line-status" id="line-status-${lineId}">Status: ${line.status_text}</p>
+                    </div>
+                `;
+                if (lineId.startsWith('F1')) {
+                    linesGridF1.innerHTML += lineHtml;
+                } else if (lineId.startsWith('F2')) {
+                    linesGridF2.innerHTML += lineHtml;
+                }
+            }
+
+            const finishedGoodsGrid = document.getElementById('finished-goods-grid');
+            finishedGoodsGrid.innerHTML = '';
+            const sortedProductIds = Object.keys(data.finished_goods).sort();
+            for (const productId of sortedProductIds) {
+                const product = data.finished_goods[productId];
+                finishedGoodsGrid.innerHTML += `
+                    <div id="product-${productId}" class="grid-item status-${product.status}">
+                        <div class="part-name">${productId}</div>
+                        <div class="part-quantity">${product.current}/${product.target}</div>
+                        <div class="product-sold">Vendidos: ${product.sold}</div>
                     </div>
                 `;
             }
@@ -128,15 +100,70 @@
         });
 
         socket.on('line_update', (data) => {
-            const lineElement = document.getElementById(`line-${data.line_id}`);
+            let lineElement = document.getElementById(`line-${data.line_id}`);
+
+            // Se o elemento da linha não existir, cria e adiciona ao grid correto
+            if (!lineElement) {
+                const lineId = data.line_id;
+                const gridContainer = lineId.startsWith('F1') ? document.getElementById('lines-grid-f1') : document.getElementById('lines-grid');
+                if (gridContainer) {
+                    const newElement = document.createElement('div');
+                    newElement.id = `line-${lineId}`;
+                    newElement.className = 'line-item';
+                    // Adiciona a estrutura básica que será preenchida abaixo
+                    newElement.innerHTML = `
+                        <h3>Linha ${lineId}</h3>
+                        <p>Produto: <strong id="line-prod-${lineId}"></strong></p>
+                        <div class="progress-bar"><div id="line-progress-${lineId}" class="progress-bar-fill"></div></div>
+                        <p class="line-progress-text" id="line-count-${lineId}"></p>
+                        <p class="line-status" id="line-status-${lineId}"></p>
+                    `;
+                    gridContainer.appendChild(newElement);
+                    lineElement = newElement;
+                }
+            }
+
             if (lineElement) {
                 document.getElementById(`line-prod-${data.line_id}`).textContent = data.product_id;
-                document.getElementById(`line-count-${data.line_id}`).textContent = `${data.completed} / ${data.total} unidades`;
+                document.getElementById(`line-count-${data.line_id}`).textContent = `${data.completed} / ${data.total}`;
                 document.getElementById(`line-status-${data.line_id}`).textContent = `Status: ${data.status_text}`;
                 const progressFill = document.getElementById(`line-progress-${data.line_id}`);
-                const percentage = (data.completed / data.total) * 100;
+                const percentage = data.total > 0 ? (data.completed / data.total) * 100 : 0;
                 progressFill.style.width = `${percentage}%`;
                 progressFill.textContent = `${Math.round(percentage)}%`;
+            }
+        });
+
+        socket.on('inventory_summary_update', (counts) => {
+            const summaryContainer = document.getElementById('inventory-summary');
+            if (summaryContainer) {
+                summaryContainer.innerHTML = `
+                    <div class="summary-box summary-VERDE">Verde: ${counts.VERDE}</div>
+                    <div class="summary-box summary-AMARELO">Amarelo: ${counts.AMARELO}</div>
+                    <div class="summary-box summary-VERMELHO">Vermelho: ${counts.VERMELHO}</div>
+                `;
+            }
+        });
+
+        socket.on('finished_goods_update', (data) => {
+            let productElement = document.getElementById(`product-${data.product_id}`);
+            const grid = document.getElementById('finished-goods-grid');
+
+            // Se o elemento não existir, cria e adiciona ao grid
+            if (!productElement && grid) {
+                const newElement = document.createElement('div');
+                newElement.id = `product-${data.product_id}`;
+                grid.appendChild(newElement);
+                productElement = newElement;
+            }
+
+            if (productElement) {
+                productElement.className = `grid-item status-${data.status}`;
+                productElement.innerHTML = `
+                    <div class="part-name">${data.product_id}</div>
+                    <div class="part-quantity">${data.current}/${data.target}</div>
+                    <div class="product-sold">Vendidos: ${data.sold}</div>
+                `;
             }
         });
     </script>

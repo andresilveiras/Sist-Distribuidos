@@ -24,10 +24,10 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.subscribe("estoque/check_in")
         client.subscribe("estoque/reabastecer")
 
+"""
+Processa mensagens de check-out e check-in do estoque.
+"""
 def on_message(client, userdata, msg):
-    """
-    Processa mensagens de check-out e check-in do estoque.
-    """
     payload = msg.payload.decode('utf-8')
     #print(f"[WAREHOUSE] Mensagem recebida: {msg.topic} -> '{payload}'")
     
@@ -46,47 +46,45 @@ def on_message(client, userdata, msg):
         # Lógica de Tópicos
         if msg.topic == "estoque/check_out":
             if buffer.check_out(quantity):
-                #print(f"[WAREHOUSE] Check-out de {quantity} da '{part_name}' realizado.")
                 client.publish("estoque/status", f"{part_name}:CHECKOUT_SUCCESS")
             else:
                 print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name}'.")
                 # Informa a linha que o estoque acabou
                 client.publish("estoque/status", f"{part_name}:OUT_OF_STOCK")
             
-            # Mostra o status do estoque
-            #print(f"[WAREHOUSE] Novo status do estoque: {buffer}")
             # Publica a atualização para o dashboard
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
 
             # Verifica se precisa reabastecer
-            if buffer.status == "AMARELO" and not restock_ordered[part_name]:
-                print(f"[WAREHOUSE] NÍVEL CRÍTICO ATINGIDO. Solicitando reabastecimento ao fornecedor.")
+            if (buffer.status == "AMARELO" and not restock_ordered[part_name]):
+                print(f"[WAREHOUSE] Solicitando novo lote de '{part_name}' ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
                 restock_ordered[part_name] = True
+            
+            if buffer.status == "VERMELHO":
+                print(f"[WAREHOUSE] NÍVEL CRÍTICO ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
+                restock_batch_size = PART_BATCH_SIZES[part_name]
+                client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
+
+            if buffer.status == "VERDE":
+                restock_ordered[part_name] = False
 
         elif msg.topic == "estoque/check_in":
             previous_quantity = buffer.current_quantity
             buffer.check_in(quantity)
-            #print(f"[WAREHOUSE] Check-in de {quantity} da '{part_name}' realizado.")
-            #print(f"[WAREHOUSE] Novo status do estoque: {buffer}")
             # Publica a atualização para o dashboard
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
             
             # Se o estoque estava baixo (insuficiente para um pedido) e agora está OK, notifica a linha.
-            # Assumimos que a linha precisa de pelo menos 1 unidade para continuar.
-            if previous_quantity == 0 and buffer.current_quantity > 0:
+            if previous_quantity == 0 and buffer.current_quantity > PART_BATCH_SIZES[part_name]:
                  print(f"[WAREHOUSE] Estoque de '{part_name}' normalizado. Notificando linhas de produção.")
                  client.publish("estoque/status", f"{part_name}:STOCK_OK")
-
-            # Se o estoque saiu do vermelho, podemos permitir um novo pedido no futuro
-            if buffer.status != "VERMELHO":
-                restock_ordered[part_name] = False
-                print("[WAREHOUSE] Nível de estoque normalizado.")
+                 restock_ordered[part_name] = False
 
     except (ValueError, IndexError) as e:
         print(f"[WAREHOUSE] ERRO: Não foi possível processar a mensagem '{payload}': {e}")
 
-# Passamos a função de callback para o helper
-client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
-client.loop_forever()
+if __name__ == "__main__":
+    client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
+    client.loop_forever()
