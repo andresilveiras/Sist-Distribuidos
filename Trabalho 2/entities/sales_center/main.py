@@ -76,33 +76,30 @@ def publish_stock_update(client, product_id, stock_info):
 Simula o ciclo diário, publicando o sinal de "novo dia" para a Fábrica 1., utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
 """
 def simulate_daily_cycle(client, lock):
-        print("\n--- [SALES_CENTER] Anunciando novo dia de produção para as fábricas. ---")
+    with lock:
         client.publish("simulation/new_day", f"start_day:{datetime.now().isoformat()}")
-        time.sleep(SIMULATION_DAY_DURATION_SECONDS)
+        print(f"[SALES_CENTER] ---- NOVO DIA INICIADO ----")
 
 """
 Simula um único evento de venda, que pode conter pedidos para múltiplos produtos, utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
 """
 def simulate_sale_event(client, lock):
-        print(f"\n--- [SALES_CENTER] Evento de venda: {datetime.now().isoformat()} ---")
-
+    with lock:
         # 1. Simular um pedido de cliente com 1 a 5 tipos de produtos diferentes
+        print(f"[SALES_CENTER] ---- VENDA INICIADA ----")
         num_products_in_order = random.randint(1, 5)
         for _ in range(num_products_in_order):
             product_sold = random.choice(PRODUCT_IDS)
             quantity_sold = random.randint(1, 10)
-            
             stock = finished_goods_inventory[product_sold]
-            
             print(f"[SALES_CENTER] Pedido de cliente: {quantity_sold} unidades de '{product_sold}'.")
-            
             # Vende o que for possível
             actual_sold = min(quantity_sold, stock["current_stock"])
             stock["current_stock"] -= actual_sold
             stock["total_sold"] += actual_sold
             print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_sold}' agora é: {stock['current_stock']}")
             # Publica a atualização para o dashboard
-            publish_stock_update(client, product_sold, stock)     
+            publish_stock_update(client, product_sold, stock)
 
 """
 Verifica a necessidade de produção e emite ordens para a Fábrica 2.
@@ -120,25 +117,22 @@ def check_and_request_production(client):
                 # Publica a ordem de produção para a Fábrica 2
                 client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
 
+def run_daily_cycle(client, lock):
+    while True:
+        simulate_daily_cycle(client, lock)
+        time.sleep(SIMULATION_DAY_DURATION_SECONDS)
+
+
+def run_sale_event(client, lock):
+    while True:
+        simulate_sale_event(client, lock)
+        check_and_request_production(client)
+        time.sleep(SALE_EVENT_INTERVAL_SECONDS)
+
 if __name__ == "__main__":
     client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
     client.loop_start() # Inicia o loop em uma thread separada
-
-    while True:
-        # Cria um Lock para controlar o acesso ao cliente MQTT
-        mqtt_lock = threading.Lock()
-
-        # Inicia as threads para o ciclo diário e eventos de venda
-        daily_cycle_thread = threading.Thread(target=simulate_daily_cycle, args=(client, mqtt_lock))
-        sale_event_thread = threading.Thread(target=simulate_sale_event, args=(client, mqtt_lock))
-
-        daily_cycle_thread.daemon = True  # Permite que o programa termine mesmo com a thread rodando
-        sale_event_thread.daemon = True
-
-        daily_cycle_thread.start()
-        sale_event_thread.start()
-
-        # Verificamos a necessidade de produção após cada ciclo de vendas (agora rodando independentemente)
-        with mqtt_lock:  # Garante acesso exclusivo ao cliente MQTT
-            check_and_request_production(client)
-        time.sleep(SALE_EVENT_INTERVAL_SECONDS)
+    mqtt_lock = threading.Lock()
+    threading.Thread(target=run_daily_cycle, args=(client, mqtt_lock), daemon=True).start()
+    threading.Thread(target=run_sale_event, args=(client, mqtt_lock), daemon=True).start()
+    while True: time.sleep(1) # Mantém o programa principal rodando
