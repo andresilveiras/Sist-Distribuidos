@@ -30,7 +30,7 @@ Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fab
 
 ## 🎯 Cenário Atual
 
-Esta versão implementa uma versão completa do cenário proposto, combinando a **Fábrica 1 (Fabricação Empurrada)** com a simulação de demanda que irá "puxar" a produção da **Fábrica 2** por meio da entidade **Sales_Center**, que simula vendas de quantidades e tipos de produto aleatórios em um determinado período de tempo:
+Esta versão implementa uma versão completa do cenário proposto, combinando a **Fábrica 1 (Fabricação Empurrada)** com a simulação de demanda que irá "puxar" a produção da **Fábrica 2** por meio de uma **Central de Vendas**, que simula vendas de quantidades e tipos de produto aleatórios em um determinado período de tempo:
 
 - **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado. Atualmente trabalha com 5 workers simultâneos em uma pool de threads.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de **100 tipos de peças** diferentes.
