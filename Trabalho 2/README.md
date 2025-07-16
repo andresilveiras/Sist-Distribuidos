@@ -35,7 +35,7 @@ Esta versão implementa uma versão completa do cenário proposto, combinando a 
 - **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado. Atualmente trabalha com 5 workers simultâneos em uma pool de threads.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de **100 tipos de peças** diferentes.
 - **Fábrica 1 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory1_line1` a `factory1_line5`) configurado para produzir um lote de 60 unidades de um produto específico (Pv1 a Pv5).
-- **1 Centro de Vendas (`sales_center`)**: Simula a demanda diária de clientes, gerencia o estoque de produtos acabados e emite ordens de produção para a Fábrica 2.
+- **1 Centro de Vendas (`sales_center`)**: Simula a venda dos produtos acabados para clientes, gerencia o estoque dos mesmos e emite ordens de produção para a Fábrica 2.
 - **Fábrica 2 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory2_line1` a `factory2_line5`) configurado para produzir um lote de 25 unidades de um produto específico (Pv1 a Pv5) determinado pelo status AMARELO do estoque de produtos acabados gerenciados pelo Centro de Vendas.
 - **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
 - **1 Dashboard de Monitoramento (`dashboard`)**: Uma interface web que exibe o status do sistema em tempo real, incluindo o estoque de peças, o progresso das linhas e o estoque de produtos acabados.
