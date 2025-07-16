@@ -98,7 +98,7 @@ A simulação agora representa um ciclo de produção e consumo mais completo, c
 1. **O "Dia" Começa**: O `sales_center` atua como o relógio do sistema. A cada "dia" (intervalo de tempo configurável), ele publica uma mensagem `simulation/new_day`. No momento o tempo está configurado para 10 minutos.
 2. **Produção Empurrada (Fábrica 1)**: Ao receber o sinal de "novo dia", as 5 linhas da Fábrica 1 iniciam a produção de seus lotes fixos de 60 produtos. Para cada unidade, elas solicitam as peças necessárias ao `warehouse`.
 3. **Demanda e Vendas**: Simultaneamente, o `sales_center` simula vendas de produtos, decrementando o estoque de produtos acabados.
-4. **Reabastecimento do Estoque de Produtos**: Quando uma linha da Fábrica 1 conclui seu lote, ela notifica o `sales_center`, que adiciona os produtos recém-fabricados ao estoque central.
+4. **Reabastecimento do Estoque de Produtos**: Quando uma linha da Fábrica 1 conclui um produto, ela notifica o `sales_center`, que adiciona os produtos recém-fabricados ao estoque central.
 5. **Produção Puxada (Ordens para Fábrica 2)**: Após simular as vendas, o `sales_center` verifica o nível do estoque de produtos acabados. Se algum produto está abaixo da meta (nível Amarelo), ele emite uma ordem de produção no tópico `factory2/production_order`. Esta ordem é consumida pela Fábrica 2.
 6. **Ciclo do Almoxarifado e Fornecedor**:
     - O `warehouse` atende aos pedidos de peças das linhas de produção.
