@@ -23,6 +23,9 @@ finished_goods_inventory = {
     } for product_id in PRODUCT_IDS
 }
 
+# Dicionario para rastrear ordens de produção pendentes para a Fábrica 2.
+pending_orders = {product_id: False for product_id in PRODUCT_IDS}
+
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
         print(f"[SALES_CENTER] Falha ao conectar ao MQTT: {reason_code}")
@@ -85,7 +88,7 @@ Simula um único evento de venda, que pode conter pedidos para múltiplos produt
 """
 def simulate_sale_event(client, lock):
     with lock:
-        # 1. Simular um pedido de cliente com 1 a 5 tipos de produtos diferentes
+        # Simula um pedido de cliente com 1 a 5 tipos de produtos diferentes
         print(f"[SALES_CENTER] ---- VENDA INICIADA ----")
         num_products_in_order = random.randint(1, 5)
         for _ in range(num_products_in_order):
@@ -100,22 +103,38 @@ def simulate_sale_event(client, lock):
             print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_sold}' agora é: {stock['current_stock']}")
             # Publica a atualização para o dashboard
             publish_stock_update(client, product_sold, stock)
+        print(f"[SALES_CENTER] ------------------------")
 
 """
 Verifica a necessidade de produção e emite ordens para a Fábrica 2.
 """
 def check_and_request_production(client):
-    #print("[SALES_CENTER] Verificando necessidade de produção...")
     for product_id, stock_info in finished_goods_inventory.items():
-        # A Fábrica 2 (puxada) deve ser acionada quando o estoque está AMARELO ou VERMELHO.
-        # A quantidade a produzir é o que falta para atingir o estoque alvo.
         status = get_product_status(stock_info)
-        if status == "AMARELO" or status == "VERMELHO":
+        
+        # No Status AMARELO, verifica se já foi feito um pedido de produção p/ fábrica 2 e faz pedido somente se nao foi feito outro antes
+
+        if(status == "AMARELO" and not pending_orders[product_id]):
             quantity_to_produce = 25
-            if quantity_to_produce > 0:
-                print(f"[SALES_CENTER] Estoque de '{product_id}' baixo! Gerando ordem de produção para {quantity_to_produce} unidades.")
-                # Publica a ordem de produção para a Fábrica 2
-                client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
+            print(f"[SALES_CENTER] Estoque de '{product_id}' baixo! Gerando ordem de produção para {quantity_to_produce} unidades.")
+            # Publica a ordem de produção para a Fábrica 2
+            client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
+            pending_orders[product_id] = True
+
+        # No Status VERMELHO, faz pedido de produção p/ fábrica 2 sem restrições
+        
+        if status == "VERMELHO":
+            quantity_to_produce = 50
+            print(f"[SALES_CENTER] ESTOQUE DE '{product_id}' EM NÍVEL CRÍTICO! Gerando ordem de produção para {quantity_to_produce} unidades.")
+            # Publica a ordem de produção para a Fábrica 2
+            client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
+
+        # No Status VERDE, verifica se foi feito pedido p/ fábrica 2 e remove
+
+        if status == "VERDE":
+            if product_id in pending_orders:
+                pending_orders[product_id] = False
+
 
 def run_daily_cycle(client, lock):
     while True:

@@ -16,14 +16,6 @@ if not LINE_ID:
 production_halted = False
 is_busy = False # Flag para indicar se a linha está processando uma ordem
 
-def publish_line_status(client, product_id, completed, total, status_text):
-    """Publica o estado atual da linha para o dashboard."""
-    if not is_busy: # Se não está ocupada, envia um status padrão
-        payload = f"N/A:0:0:{status_text}"
-    else:
-        payload = f"{product_id}:{completed}:{total}:{status_text}"
-    client.publish(f"dashboard/lines/{LINE_ID}", payload, retain=True)
-
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
         print(f"[{LINE_ID}] Falha ao conectar: {reason_code}")
@@ -34,15 +26,29 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.subscribe("estoque/status")
         publish_line_status(client, None, 0, 0, "Ociosa")
 
+"""
+Lida com mensagens MQTT recebidas, delegando para a função apropriada.
+"""
 def on_message(client, userdata, msg):
-    """Lida com mensagens MQTT recebidas, delegando para a função apropriada."""
     if msg.topic == "estoque/status":
         handle_stock_status(msg)
     elif msg.topic == "factory2/production_order":
         handle_production_order(client, msg)
 
+"""
+Publica o estado atual da linha para o dashboard.
+"""
+def publish_line_status(client, product_id, completed, total, status_text):
+    if not is_busy: # Se não está ocupada, envia um status padrão
+        payload = f"N/A:0:0:{status_text}"
+    else:
+        payload = f"{product_id}:{completed}:{total}:{status_text}"
+    client.publish(f"dashboard/lines/{LINE_ID}", payload, retain=True)
+
+"""
+Processa mensagens de status do almoxarifado.
+"""
 def handle_stock_status(msg):
-    """Processa mensagens de status do almoxarifado."""
     global production_halted
     try:
         part_name, status = msg.payload.decode('utf-8').split(':')
@@ -55,8 +61,10 @@ def handle_stock_status(msg):
     except (ValueError, IndexError):
         pass # Ignora mensagens mal formatadas
 
+"""
+Recebe uma ordem de produção e a inicia em uma nova thread.
+"""
 def handle_production_order(client, msg):
-    """Recebe uma ordem de produção e a inicia em uma nova thread."""
     global is_busy
     if is_busy:
         return # Se a linha já está ocupada, ignora a nova ordem. Outra linha ociosa pegará.
@@ -66,8 +74,10 @@ def handle_production_order(client, msg):
     production_thread.daemon = True
     production_thread.start()
 
+"""
+O processo completo de uma ordem de produção, executado em uma thread.
+"""
 def run_production_process(client, payload):
-    """O processo completo de uma ordem de produção, executado em uma thread."""
     global production_halted, is_busy
     is_busy = True
     try:
@@ -91,8 +101,10 @@ def run_production_process(client, payload):
         print(f"[{LINE_ID}] Linha ociosa. Aguardando novas ordens.")
         publish_line_status(client, None, 0, 0, "Ociosa")
 
+"""
+Executa a lógica de produção bloqueante para uma ordem específica.
+"""
 def run_blocking_production(client, product_id, total_quantity):
-    """Executa a lógica de produção bloqueante para uma ordem específica."""
     global production_halted
     units_produced = 0
     
@@ -113,6 +125,7 @@ def run_blocking_production(client, product_id, total_quantity):
 
         units_produced += 1
         print(f"[{LINE_ID}] Unidade de '{product_id}' montada! ({units_produced}/{total_quantity})")
+        client.publish("production/batch_completed", f"{product_id}:1")
 
     print(f"[{LINE_ID}] ORDEM CONCLUÍDA: {total_quantity} unidades de '{product_id}' produzidas.")
     publish_line_status(client, product_id, units_produced, total_quantity, "Ordem Concluída")

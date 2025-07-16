@@ -22,8 +22,10 @@ production_halted = False
 start_new_batch = True # Flag para controlar o início de um novo lote
 is_producing = False # Flag para evitar iniciar um novo lote enquanto um já está em andamento
 
+"""
+Publica o estado atual da linha para o dashboard.
+"""
 def publish_line_status(client, current_batch_count, status_text):
-    """Publica o estado atual da linha para o dashboard."""
     payload = f"{PRODUCT_ID}:{current_batch_count}:{BATCH_SIZE}:{status_text}"
     client.publish(f"dashboard/lines/{LINE_ID}", payload, retain=True)
 
@@ -38,8 +40,10 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.subscribe("simulation/new_day")
         publish_line_status(client, 0, "Aguardando início do dia")
 
+"""
+Processa mensagens de status do almoxarifado.
+"""
 def on_message(client, userdata, msg):
-    """Processa mensagens de status do almoxarifado."""
     global production_halted, start_new_batch, is_producing
     payload = msg.payload.decode('utf-8')
     
@@ -65,8 +69,10 @@ def on_message(client, userdata, msg):
         except (ValueError, IndexError):
             pass # Ignora mensagens mal formatadas
 
+"""
+Executa a lógica de produção para um lote completo.
+"""
 def run_production_batch(client):
-    """Executa a lógica de produção para um lote completo."""
     global production_halted, is_producing
     try:
         current_batch_count = 0
@@ -100,16 +106,18 @@ def run_production_batch(client):
         is_producing = False
         print(f"[{LINE_ID}] Linha liberada. Aguardando próximo dia.")
 
-client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
-client.loop_start()
+if __name__ == "__main__":
 
-while True:
-    if start_new_batch and not is_producing:
-        is_producing = True
-        start_new_batch = False # Reseta a flag para esperar o próximo dia
-        thread = threading.Thread(target=run_production_batch, args=(client,))
-        thread.daemon = True
-        thread.start()
-    else:
-        # Aguardando o sinal para começar um novo dia
-        time.sleep(1)
+    client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
+    client.loop_start()
+
+    while True:
+        if start_new_batch and not is_producing:
+            is_producing = True
+            start_new_batch = False # Reseta a flag para esperar o próximo dia
+            thread = threading.Thread(target=run_production_batch, args=(client,))
+            thread.daemon = True
+            thread.start()
+        else:
+            # Aguardando o sinal para começar um novo dia
+            time.sleep(1)

@@ -18,10 +18,10 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print("[SUPPLIER] Conectado ao broker MQTT. Aguardando ordens de reabastecimento.")
         client.subscribe("estoque/reabastecer")
 
+"""
+Função que executa em uma thread do pool para processar um único pedido.
+"""
 def process_order(client, part_name, quantity):
-    """
-    Função que executa em uma thread do pool para processar um único pedido.
-    """
     try:
         delivery_time = PART_DELIVERY_TIMES[part_name]
         print(f"[SUPPLIER] INICIANDO processamento de '{part_name}'. Tempo de entrega: {delivery_time}s.")
@@ -34,10 +34,10 @@ def process_order(client, part_name, quantity):
     except Exception as e:
         print(f"[SUPPLIER] ERRO inesperado ao processar pedido para '{part_name}': {e}")
 
+"""
+Recebe uma ordem de reabastecimento e a submete ao pool de threads para processamento.
+"""
 def on_message(client, userdata, msg):
-    """
-    Recebe uma ordem de reabastecimento e a submete ao pool de threads para processamento.
-    """
     payload = msg.payload.decode('utf-8')
     print(f"[SUPPLIER] Ordem recebida: '{payload}'. Adicionando à fila de processamento.")
     
@@ -52,5 +52,6 @@ def on_message(client, userdata, msg):
     except (ValueError, IndexError) as e:
         print(f"[SUPPLIER] ERRO: Não foi possível processar a ordem '{payload}': {e}")
 
-client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
-client.loop_forever() # O fornecedor agora fica em loop, apenas esperando por mensagens
+if __name__ == "__main__":
+    client = get_client(on_connect_callback=on_connect, on_message_callback=on_message)
+    client.loop_forever() # O fornecedor agora fica em loop, apenas esperando por mensagens
