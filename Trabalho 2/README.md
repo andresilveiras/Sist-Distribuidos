@@ -28,14 +28,15 @@ Cada linha consome partes de forma aleatória conforme os produtos são fabricad
 
 Usar: Docker containeres para cada entidade (Depósito de produtos acabados, Fabricas, linhas, almoxarifado, fornecedores) Criar Buffer estoque onde Consumo faz CheckOut (decrementa) e Abastecimento faz CheckIn (incrementa). Todo buffer de materiais e produtos deve ser mostrado em tela com seu valor atual e COR. Toda mensagem de pedidos de reabastecimento e ordem de produção deve usar MQTT entre entidades na 1ª versão do projeto – a versão final deve usar banco de dados em memória (ex. REDIS) ou RabbitMQ (justificar e explicar a escolha), compartilhado entre as entidades. 
 
-## 🎯 Cenário Atual (Simplificado)
+## 🎯 Cenário Atual
 
-Esta versão implementa um cenário híbrido, combinando a **Fábrica 1 (Fabricação Empurrada)** com a simulação de demanda que irá "puxar" a produção da futura Fábrica 2:
+Esta versão implementa uma versão completa do cenário proposto, combinando a **Fábrica 1 (Fabricação Empurrada)** com a simulação de demanda que irá "puxar" a produção da **Fábrica 2** por meio da entidade **Sales_Center**, que simula vendas de quantidades e tipos de produto aleatórios em um determinado período de tempo:
 
 - **1 Fornecedor (`supplier`)**: Atende aos pedidos de reabastecimento do almoxarifado. Atualmente trabalha com 5 workers simultâneos em uma pool de threads.
 - **1 Almoxarifado (`warehouse`)**: Gerencia o estoque de **100 tipos de peças** diferentes.
 - **Fábrica 1 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory1_line1` a `factory1_line5`) configurado para produzir um lote de 60 unidades de um produto específico (Pv1 a Pv5).
 - **1 Centro de Vendas (`sales_center`)**: Simula a demanda diária de clientes, gerencia o estoque de produtos acabados e emite ordens de produção para a Fábrica 2.
+- **Fábrica 2 com 5 Linhas de Produção**: Cada linha é um contêiner (`factory2_line1` a `factory2_line5`) configurado para produzir um lote de 25 unidades de um produto específico (Pv1 a Pv5) determinado pelo status AMARELO do estoque de produtos acabados gerenciados pelo Centro de Vendas.
 - **1 Broker MQTT (`broker`)**: Centraliza toda a comunicação entre as entidades.
 - **1 Dashboard de Monitoramento (`dashboard`)**: Uma interface web que exibe o status do sistema em tempo real, incluindo o estoque de peças, o progresso das linhas e o estoque de produtos acabados.
 
@@ -45,7 +46,7 @@ Esta versão implementa um cenário híbrido, combinando a **Fábrica 1 (Fabrica
 Trabalho 2/
 ├── broker/
 │   ├── config/
-│   │   └── mosquitto.conf  # Configurações do broker (logs, etc.)
+│   │   └── mosquitto.conf  # Configurações do broker MQTT
 │   └── Dockerfile
 ├── entities/
 │   ├── dashboard/
@@ -54,10 +55,13 @@ Trabalho 2/
 │   │   ├── templates/
 │   │   │   └── index.html  # Layout do dashboard em HTML
 │   │   ├── Dockerfile
-│   │   └── main.py         # Lógica do dashboard em Python (Flask)
+│   │   └── main.py         # Lógica (back-end) do dashboard em Python (Flask)
 │   ├── factory1/line/
 │   │   ├── Dockerfile
 │   │   └── main.py         # Lógica da linha de produção da Fábrica 1
+│   ├── factory2/line/
+│   │   ├── Dockerfile
+│   │   └── main.py         # Lógica da linha de produção da Fábrica 2
 │   ├── sales_center/
 │   │   ├── Dockerfile
 │   │   └── main.py         # Lógica de simulação de vendas e demanda
@@ -91,11 +95,11 @@ Certifique-se de que o **Docker** e o **Docker Compose** estão instalados em su
 
 A simulação agora representa um ciclo de produção e consumo mais completo, com um "relógio" central ditando o ritmo:
 
-1. **O "Dia" Começa**: O `sales_center` atua como o relógio do sistema. A cada "dia" (intervalo de tempo configurável), ele publica uma mensagem `simulation/new_day`.
+1. **O "Dia" Começa**: O `sales_center` atua como o relógio do sistema. A cada "dia" (intervalo de tempo configurável), ele publica uma mensagem `simulation/new_day`. No momento o tempo está configurado para 10 minutos.
 2. **Produção Empurrada (Fábrica 1)**: Ao receber o sinal de "novo dia", as 5 linhas da Fábrica 1 iniciam a produção de seus lotes fixos de 60 produtos. Para cada unidade, elas solicitam as peças necessárias ao `warehouse`.
 3. **Demanda e Vendas**: Simultaneamente, o `sales_center` simula vendas de produtos, decrementando o estoque de produtos acabados.
 4. **Reabastecimento do Estoque de Produtos**: Quando uma linha da Fábrica 1 conclui seu lote, ela notifica o `sales_center`, que adiciona os produtos recém-fabricados ao estoque central.
-5. **Produção Puxada (Ordens para Fábrica 2)**: Após simular as vendas, o `sales_center` verifica o nível do estoque de produtos acabados. Se algum produto está abaixo da meta, ele emite uma ordem de produção no tópico `factory2/production_order`. Esta ordem será consumida pela Fábrica 2 no futuro.
+5. **Produção Puxada (Ordens para Fábrica 2)**: Após simular as vendas, o `sales_center` verifica o nível do estoque de produtos acabados. Se algum produto está abaixo da meta (nível Amarelo), ele emite uma ordem de produção no tópico `factory2/production_order`. Esta ordem é consumida pela Fábrica 2.
 6. **Ciclo do Almoxarifado e Fornecedor**:
     - O `warehouse` atende aos pedidos de peças das linhas de produção.
     - Quando o estoque de uma peça fica baixo (nível AMARELO/VERMELHO), o `warehouse` emite uma ordem de reabastecimento para o `supplier`.
@@ -109,6 +113,12 @@ A simulação agora representa um ciclo de produção e consumo mais completo, c
 - Docker / Docker Compose
 - Flask & Flask-SocketIO (para o Dashboard)
 
+## 🐞 Problemas Conhecidos
+
+- Linhas de produção travadas quando o estoque de peças no almoxarifado chega a 0, mesmo após a reposição;
+
 ## 🔮 Próximos Passos
 
-- Implementar a Fábrica 2 (Fabricação Puxada).
+- Implementar um relatório de vendas / produção por dia
+- Implementar um sistema de logs mais eficiente
+- Implementar persistência de dados, conforme proposto (escolher entre Redis ou RabbitMQ)
