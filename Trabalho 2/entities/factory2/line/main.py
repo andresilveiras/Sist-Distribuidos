@@ -125,12 +125,11 @@ def run_blocking_production(client, product_id, total_quantity):
 
         units_produced += 1
         print(f"[{LINE_ID}] Unidade de '{product_id}' montada! ({units_produced}/{total_quantity})")
-        client.publish("production/batch_completed", f"{product_id}:1")
+        client.publish("production/product_completed", f"{product_id}:1")
 
     print(f"[{LINE_ID}] ORDEM CONCLUÍDA: {total_quantity} unidades de '{product_id}' produzidas.")
     publish_line_status(client, product_id, units_produced, total_quantity, "Ordem Concluída")
-    # A linha abaixo foi comentada pq antes postava so quando terminava todo o lote, agora publica produto a produto
-    #client.publish("production/batch_completed", f"{product_id}:{total_quantity}")
+    client.publish("production/batch_completed", f"{product_id}:1")
     time.sleep(5) # Simula um tempo de resfriamento/limpeza
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ from shared.products import PART_DELIVERY_TIMES
 from concurrent.futures import ThreadPoolExecutor
 
 # --- Configurações do Fornecedor ---
-MAX_CONCURRENT_ORDERS = 5 # Define o número máximo de pedidos processados simultaneamente
+MAX_CONCURRENT_ORDERS = 10 # Define o número máximo de pedidos processados simultaneamente
 
 # Cria um "pool de threads" com um número fixo de workers.
 # Isso evita a criação ilimitada de threads, gerenciando os recursos do sistema.

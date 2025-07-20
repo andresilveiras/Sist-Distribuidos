@@ -96,7 +96,7 @@ def run_production_batch(client):
             current_batch_count += 1
             print(f"[LINE {LINE_ID}] PRODUTO {PRODUCT_ID} MONTADO! ({current_batch_count}/{BATCH_SIZE})")
             # Notifica a conclusão de CADA unidade em tempo real.
-            client.publish("production/batch_completed", f"{PRODUCT_ID}:1")
+            client.publish("production/product_completed", f"{PRODUCT_ID}:1")
 
         # Lote concluído
         print(f"[{LINE_ID}] LOTE CONCLUÍDO: {BATCH_SIZE} unidades de '{PRODUCT_ID}' produzidas.")

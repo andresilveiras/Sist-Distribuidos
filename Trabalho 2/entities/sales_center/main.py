@@ -31,8 +31,8 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print(f"[SALES_CENTER] Falha ao conectar ao MQTT: {reason_code}")
         return
     print("[SALES_CENTER] Conectado ao Broker MQTT.")
-    # Inscreve-se no tópico para saber quando um lote de produção foi concluído
-    client.subscribe("production/batch_completed")
+    client.subscribe("production/batch_completed")      # status que uma linha da fabrica 2 terminou de produzir um lote
+    client.subscribe("production/product_completed")    # um novo produto foi produzido (ambas as fabricas)
 
     # Publica o estado inicial de todos os produtos para o dashboard APÓS a conexão
     # Isso garante que as mensagens não sejam perdidas.
@@ -44,7 +44,8 @@ def on_connect(client, userdata, flags, reason_code, properties):
 Processa mensagens de lotes de produção concluídos.
 """
 def on_message(client, userdata, msg):
-    if msg.topic == "production/batch_completed":
+    # Recebeu mensagem de produto montado (ambas as fabricas)
+    if msg.topic == "production/product_completed":
         payload = msg.payload.decode('utf-8')
         try:
             product_id, quantity_str = payload.split(':')
@@ -54,7 +55,17 @@ def on_message(client, userdata, msg):
                 finished_goods_inventory[product_id]["current_stock"] += quantity
                 publish_stock_update(client, product_id, finished_goods_inventory[product_id])
         except (ValueError, IndexError) as e:
-            print(f"[SALES_CENTER] ERRO: Mensagem de lote concluído mal formatada: '{payload}': {e}")
+            print(f"[SALES_CENTER] ERRO: Mensagem mal formatada: '{payload}': {e}")
+
+    # Recebeu mensagem de lote concluido (apenas fabrica 2 - libera a linha p/ proximos pedidos)
+    if msg.topic == "production/batch_completed": 
+        payload = msg.payload.decode('utf-8')
+        try:
+            product_id, quantity_str = payload.split(':')
+            pending_orders[product_id] = False
+            print(f"Ordens de produção p/ fábrica 2: {pending_orders}")
+        except (ValueError, IndexError) as e:
+            print(f"[SALES_CENTER] ERRO: Mensagem mal formatada: '{payload}': {e}")
 
 """
 Calcula o status do estoque de um produto acabado (VERDE, AMARELO, VERMELHO).
@@ -121,6 +132,7 @@ def check_and_request_production(client, lock):
                 # Publica a ordem de produção para a Fábrica 2
                 client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
                 pending_orders[product_id] = True
+                print(f"Ordens de produção p/ fábrica 2: {pending_orders}")
 
             # No Status VERMELHO, faz pedido de produção p/ fábrica 2 sem restrições
             
@@ -129,13 +141,7 @@ def check_and_request_production(client, lock):
                 print(f"[SALES_CENTER] ESTOQUE DE '{product_id}' EM NÍVEL CRÍTICO! Gerando ordem de produção para {quantity_to_produce} unidades.")
                 # Publica a ordem de produção para a Fábrica 2
                 client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
-
-            # No Status VERDE, verifica se foi feito pedido p/ fábrica 2 e remove
-
-            if status == "VERDE":
-                if product_id in pending_orders:
-                    pending_orders[product_id] = False
-
+                
 
 def run_daily_cycle(client, lock):
     while True:
