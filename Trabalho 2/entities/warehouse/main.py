@@ -1,3 +1,4 @@
+import time
 from shared.buffer import Buffer
 from shared.mqtt_client import get_client
 from shared.products import ALL_PARTS, PART_BATCH_SIZES
@@ -66,6 +67,7 @@ def on_message(client, userdata, msg):
                 print(f"[WAREHOUSE] NÍVEL CRÍTICO DE {part_name} ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
+                time.sleep(5)
 
             if buffer.status == "VERDE":
                 restock_ordered[part_name] = False
