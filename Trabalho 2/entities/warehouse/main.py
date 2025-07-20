@@ -63,7 +63,7 @@ def on_message(client, userdata, msg):
                 restock_ordered[part_name] = True
             
             if buffer.status == "VERMELHO":
-                print(f"[WAREHOUSE] NÍVEL CRÍTICO ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
+                print(f"[WAREHOUSE] NÍVEL CRÍTICO DE {part_name} ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
 
