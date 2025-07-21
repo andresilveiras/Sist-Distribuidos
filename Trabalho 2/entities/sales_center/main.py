@@ -15,7 +15,7 @@ finished_goods_inventory = {
     product_id: {
         # --- Escolha o cenário de simulação ---
         # Opção 1: Simulação de Estado Estacionário (Recomendado para testar a resiliência)
-        "current_stock": 80,
+        "current_stock": 10,
         # Opção 2: Simulação de Partida a Frio (Bom para ver o sistema inicializar)
         # "current_stock": 0,
         "target_stock": 100,
@@ -25,6 +25,7 @@ finished_goods_inventory = {
 
 # Dicionario para rastrear ordens de produção pendentes para a Fábrica 2.
 pending_orders = {product_id: False for product_id in PRODUCT_IDS}
+denied_orders = 0
 
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
@@ -87,7 +88,7 @@ def publish_stock_update(client, product_id, stock_info):
     client.publish(f"dashboard/finished_goods/{product_id}", payload, retain=True)
 
 """
-Simula o ciclo diário, publicando o sinal de "novo dia" para a Fábrica 1., utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
+Simula o ciclo diário, publicando o sinal de "novo dia" para a Fábrica 1.
 """
 def simulate_daily_cycle(client, lock):
     with lock:
@@ -95,25 +96,28 @@ def simulate_daily_cycle(client, lock):
         print(f"[SALES_CENTER] ---- NOVO DIA INICIADO ----")
 
 """
-Simula um único evento de venda, que pode conter pedidos para múltiplos produtos, utilizando um lock para garantir acesso exclusivo ao cliente MQTT.
+Simula um único evento de venda, que pode conter pedidos para múltiplos produtos.
 """
 def simulate_sale_event(client, lock):
+    global denied_orders
     with lock:
         # Simula um pedido de cliente com 1 a 5 tipos de produtos diferentes
         print(f"[SALES_CENTER] ---- VENDA INICIADA ----")
         num_products_in_order = random.randint(1, 5)
         for _ in range(num_products_in_order):
-            product_sold = random.choice(PRODUCT_IDS)
-            quantity_sold = random.randint(1, 10)
-            stock = finished_goods_inventory[product_sold]
-            print(f"[SALES_CENTER] Pedido de cliente: {quantity_sold} unidades de '{product_sold}'.")
-            # Vende o que for possível
-            actual_sold = min(quantity_sold, stock["current_stock"])
-            stock["current_stock"] -= actual_sold
-            stock["total_sold"] += actual_sold
-            print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_sold}' agora é: {stock['current_stock']}")
-            # Publica a atualização para o dashboard
-            publish_stock_update(client, product_sold, stock)
+            product_ordered = random.choice(PRODUCT_IDS)
+            quantity_ordered = random.randint(1, 10)
+            stock = finished_goods_inventory[product_ordered]
+            print(f"[SALES_CENTER] Pedido de cliente: {quantity_ordered} unidades de '{product_ordered}'.")
+            # Verifica se há produtos disponíveis
+            if(quantity_ordered <= stock["current_stock"]):
+                stock["current_stock"] -= quantity_ordered
+                print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_ordered}' agora é: {stock['current_stock']}")
+                publish_stock_update(client, product_ordered, stock)
+            else:
+                denied_orders += 1
+                print(f"[SALES_CENTER] Venda NÃO efetuada. Estoque de '{product_ordered}' INSUFICIENTE.")
+                print(f"VENDAS NÃO REALIZADAS: {denied_orders}")          
         print(f"[SALES_CENTER] ------------------------")
 
 """
@@ -138,7 +142,7 @@ def check_and_request_production(client, lock):
             
             if status == "VERMELHO":
                 quantity_to_produce = 50
-                print(f"[SALES_CENTER] ESTOQUE DE '{product_id}' EM NÍVEL CRÍTICO! Gerando ordem de produção para {quantity_to_produce} unidades.")
+                print(f"[SALES_CENTER] ESTOQUE DE '{product_id}' EM NÍVEL CRÍTICO! Gerando nova ordem para Fabrica 2.")
                 # Publica a ordem de produção para a Fábrica 2
                 client.publish("factory2/production_order", f"{product_id}:{quantity_to_produce}")
                 

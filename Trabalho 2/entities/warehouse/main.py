@@ -1,4 +1,3 @@
-import time
 from shared.buffer import Buffer
 from shared.mqtt_client import get_client
 from shared.products import ALL_PARTS, PART_BATCH_SIZES
@@ -57,17 +56,11 @@ def on_message(client, userdata, msg):
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
 
             # Verifica se precisa reabastecer
-            if (buffer.status == "AMARELO" and not restock_ordered[part_name]):
+            if ((buffer.status == "AMARELO" or buffer.status == "VERMELHO") and not restock_ordered[part_name]):
                 print(f"[WAREHOUSE] Solicitando novo lote de '{part_name}' ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
                 restock_ordered[part_name] = True
-            
-            if buffer.status == "VERMELHO":
-                print(f"[WAREHOUSE] NÍVEL CRÍTICO DE {part_name} ATINGIDO. Solicitando reabastecimento prioritário ao fornecedor.")
-                restock_batch_size = PART_BATCH_SIZES[part_name]
-                client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
-                time.sleep(5)
 
             if buffer.status == "VERDE":
                 restock_ordered[part_name] = False
@@ -79,7 +72,7 @@ def on_message(client, userdata, msg):
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
             
             # Se o estoque estava baixo (insuficiente para um pedido) e agora está OK, notifica a linha.
-            if previous_quantity == 0 and buffer.current_quantity > PART_BATCH_SIZES[part_name]:
+            if previous_quantity == 0 and buffer.current_quantity > 0:
                  print(f"[WAREHOUSE] Estoque de '{part_name}' normalizado. Notificando linhas de produção.")
                  client.publish("estoque/status", f"{part_name}:STOCK_OK")
                  restock_ordered[part_name] = False
