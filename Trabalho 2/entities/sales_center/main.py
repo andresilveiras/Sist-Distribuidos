@@ -15,7 +15,7 @@ finished_goods_inventory = {
     product_id: {
         # --- Escolha o cenário de simulação ---
         # Opção 1: Simulação de Estado Estacionário (Recomendado para testar a resiliência)
-        "current_stock": 10,
+        "current_stock": 80,
         # Opção 2: Simulação de Partida a Frio (Bom para ver o sistema inicializar)
         # "current_stock": 0,
         "target_stock": 100,
