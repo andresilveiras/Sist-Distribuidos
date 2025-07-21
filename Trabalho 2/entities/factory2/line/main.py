@@ -119,8 +119,9 @@ def run_blocking_production(client, product_id, total_quantity):
                 time.sleep(5)
                 continue
 
-            part_to_request = parts_needed.pop()
+            part_to_request = next(iter(parts_needed))  # Não remove ainda
             client.publish("estoque/check_out", f"{part_to_request}:1")
+            parts_needed.remove(part_to_request)  # Remove só após enviar a requisição
             time.sleep(0.1)
 
         units_produced += 1

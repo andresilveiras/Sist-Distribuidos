@@ -112,6 +112,7 @@ def simulate_sale_event(client, lock):
             # Verifica se há produtos disponíveis
             if(quantity_ordered <= stock["current_stock"]):
                 stock["current_stock"] -= quantity_ordered
+                stock["total_sold"] += quantity_ordered
                 print(f"[SALES_CENTER] Venda efetuada. Estoque de '{product_ordered}' agora é: {stock['current_stock']}")
                 publish_stock_update(client, product_ordered, stock)
             else:

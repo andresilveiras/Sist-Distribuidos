@@ -89,8 +89,9 @@ def run_production_batch(client):
                     time.sleep(1)
                     continue
 
-                part_to_request = parts_needed_for_current_unit.pop()
+                part_to_request = next(iter(parts_needed_for_current_unit))  # Não remove ainda
                 client.publish("estoque/check_out", f"{part_to_request}:1")
+                parts_needed_for_current_unit.remove(part_to_request)  # Remove só após enviar a requisição
                 time.sleep(0.1)
 
             current_batch_count += 1
