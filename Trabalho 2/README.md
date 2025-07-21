@@ -113,10 +113,6 @@ A simulação agora representa um ciclo de produção e consumo mais completo, c
 - Docker / Docker Compose
 - Flask & Flask-SocketIO (para o Dashboard)
 
-## 🐞 Problemas Conhecidos
-
-- Linhas de produção travadas quando o estoque de peças no almoxarifado chega a 0, mesmo após a reposição;
-
 ## 🔮 Próximos Passos
 
 - Implementar um relatório de vendas / produção por dia

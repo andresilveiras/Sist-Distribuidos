@@ -27,7 +27,7 @@ def process_order(client, part_name, quantity):
         print(f"[SUPPLIER] INICIANDO processamento de '{part_name}'. Tempo de entrega: {delivery_time}s.")
         time.sleep(delivery_time)
 
-        print(f"[SUPPLIER] FINALIZADO o processamento de '{part_name}'. Enviando para o almoxarifado.")
+        #print(f"[SUPPLIER] FINALIZADO o processamento de '{part_name}'. Enviando para o almoxarifado.")
         client.publish("estoque/check_in", f"{part_name}:{quantity}")
     except KeyError as e:
         print(f"[SUPPLIER] ERRO: Peça desconhecida no dicionário de entregas: {e}")
@@ -39,7 +39,7 @@ Recebe uma ordem de reabastecimento e a submete ao pool de threads para processa
 """
 def on_message(client, userdata, msg):
     payload = msg.payload.decode('utf-8')
-    print(f"[SUPPLIER] Ordem recebida: '{payload}'. Adicionando à fila de processamento.")
+    #print(f"[SUPPLIER] Ordem recebida: '{payload}'. Adicionando à fila de processamento.")
     
     try:
         part_name, quantity_str = payload.split(':')
