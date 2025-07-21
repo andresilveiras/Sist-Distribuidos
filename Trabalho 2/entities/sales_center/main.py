@@ -118,7 +118,7 @@ def simulate_sale_event(client, lock):
             else:
                 denied_orders += 1
                 print(f"[SALES_CENTER] Venda NÃO efetuada. Estoque de '{product_ordered}' INSUFICIENTE.")
-                print(f"VENDAS NÃO REALIZADAS: {denied_orders}")          
+                print(f"[SALES_CENTER] VENDAS NÃO REALIZADAS: {denied_orders}")          
         print(f"[SALES_CENTER] ------------------------")
 
 """
