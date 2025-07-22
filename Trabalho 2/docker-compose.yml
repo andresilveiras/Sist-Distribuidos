@@ -160,4 +160,25 @@ services:
     environment:
       - LINE_ID=F2-L5
 
+  # --- Linha de produção 6 da Fabrica 2 ---
+  factory2_line5:
+    <<: *factory2_line_base
+    container_name: factory2_line6
+    environment:
+      - LINE_ID=F2-L6
+
+  # --- Linha de produção 7 da Fabrica 2 ---
+  factory2_line5:
+    <<: *factory2_line_base
+    container_name: factory2_line7
+    environment:
+      - LINE_ID=F2-L7
+
+  # --- Linha de produção 8 da Fabrica 2 ---
+  factory2_line5:
+    <<: *factory2_line_base
+    container_name: factory2_line8
+    environment:
+      - LINE_ID=F2-L8
+
 # Você pode adicionar mais linhas (F2-L6, F2-L7, F2-L8) seguindo o mesmo padrão.
