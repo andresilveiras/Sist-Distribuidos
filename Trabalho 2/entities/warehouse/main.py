@@ -47,14 +47,15 @@ def on_message(client, userdata, msg):
         # Lógica de Tópicos
         if msg.topic == "estoque/check_out":
             if buffer.check_out(quantity):
+                # Publica no tópico de status do estoque
                 client.publish("estoque/status", f"{part_name}:CHECKOUT_SUCCESS")
+                # Publica a atualização para o dashboard
+                client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
+
             else:
                 print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name}'.")
                 # Informa a linha que o estoque acabou
                 client.publish("estoque/status", f"{part_name}:OUT_OF_STOCK")
-            
-            # Publica a atualização para o dashboard
-            client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
 
             # Verifica se precisa reabastecer
             if ((buffer.status == "AMARELO") and not restock_ordered[part_name]):
@@ -72,9 +73,10 @@ def on_message(client, userdata, msg):
             if buffer.status == "VERDE":
                 restock_ordered[part_name] = False
 
-        elif msg.topic == "estoque/check_in":
+        if msg.topic == "estoque/check_in":
             previous_quantity = buffer.current_quantity
             buffer.check_in(quantity)
+            print(f"[WAREHOUSE] Peças recebidas: {quantity} unidades de '{part_name}'.")
             # Publica a atualização para o dashboard
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
             
