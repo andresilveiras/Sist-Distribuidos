@@ -1,3 +1,4 @@
+import time
 from shared.buffer import Buffer
 from shared.mqtt_client import get_client
 from shared.products import ALL_PARTS, PART_BATCH_SIZES
@@ -8,6 +9,11 @@ inventory = {
     part_name: Buffer(part_name, max_capacity=100, yellow_level=50, red_level=25)
     for part_name in ALL_PARTS
 }
+
+# Define o tempo de cooldown para novos pedidos no nível crítico para evitar que o estoque fique sem peças
+last_restock_time = {part_name: 0 for part_name in ALL_PARTS}
+RESTOCK_COOLDOWN = 5
+
 # Dicionário para controlar se um pedido de reabastecimento já foi feito para uma peça.
 restock_ordered = {part_name: False for part_name in ALL_PARTS}
 
@@ -46,28 +52,39 @@ def on_message(client, userdata, msg):
         # Lógica de Tópicos
         if msg.topic == "estoque/check_out":
             if buffer.check_out(quantity):
+                # Publica no tópico de status do estoque
                 client.publish("estoque/status", f"{part_name}:CHECKOUT_SUCCESS")
+                # Publica a atualização para o dashboard
+                client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
+
             else:
                 print(f"[WAREHOUSE] FALHA NO CHECK-OUT: Estoque insuficiente para '{part_name}'.")
                 # Informa a linha que o estoque acabou
                 client.publish("estoque/status", f"{part_name}:OUT_OF_STOCK")
-            
-            # Publica a atualização para o dashboard
-            client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
 
             # Verifica se precisa reabastecer
-            if ((buffer.status == "AMARELO" or buffer.status == "VERMELHO") and not restock_ordered[part_name]):
-                #print(f"[WAREHOUSE] Solicitando novo lote de '{part_name}' ao fornecedor.")
+            if ((buffer.status == "AMARELO") and not restock_ordered[part_name]):
+                print(f"[WAREHOUSE] Solicitando novo lote de '{part_name}' ao fornecedor.")
                 restock_batch_size = PART_BATCH_SIZES[part_name]
                 client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
                 restock_ordered[part_name] = True
 
+            # Se o estoque estiver vermelho, faz uma nova solicitação de reabastecimento sem restrição, para evitar que o estoque fique sem peças
+            if buffer.status == "VERMELHO":
+                now = time.time()
+                if now - last_restock_time[part_name] >= RESTOCK_COOLDOWN:
+                    print(f"[WAREHOUSE] NÍVEL CRÍTICO DE '{part_name}'. Fazendo nova solicitação.")
+                    restock_batch_size = PART_BATCH_SIZES[part_name]
+                    client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
+                    last_restock_time[part_name] = now
+
             if buffer.status == "VERDE":
                 restock_ordered[part_name] = False
 
-        elif msg.topic == "estoque/check_in":
+        if msg.topic == "estoque/check_in":
             previous_quantity = buffer.current_quantity
             buffer.check_in(quantity)
+            print(f"[WAREHOUSE] Peças recebidas: {quantity} unidades de '{part_name}'.")
             # Publica a atualização para o dashboard
             client.publish(f"dashboard/inventory/{part_name}", f"{buffer.current_quantity}:{buffer.status}")
             

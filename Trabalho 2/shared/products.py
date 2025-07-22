@@ -25,9 +25,9 @@ BOM = {
 }
 
 # Define o tamanho do lote de reabastecimento para cada peça.
-# Cada peça terá um lote com uma quantidade aleatória entre 10 e 99.
+# Cada peça terá um lote com uma quantidade aleatória entre 30 e 99.
 PART_BATCH_SIZES = {
-    part: random.randint(10, 99) for part in ALL_PARTS
+    part: random.randint(30, 99) for part in ALL_PARTS
 }
 
 # Define o tempo de entrega (em segundos) para cada peça.

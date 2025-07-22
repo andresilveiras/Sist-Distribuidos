@@ -101,7 +101,7 @@ def run_production_batch(client):
 
         # Lote concluído
         print(f"[{LINE_ID}] LOTE CONCLUÍDO: {BATCH_SIZE} unidades de '{PRODUCT_ID}' produzidas.")
-        publish_line_status(client, current_batch_count, "Lote Concluído. Aguardando...")
+        publish_line_status(client, current_batch_count, "Lote Concluído. Aguardando novo dia.")
     finally:
         # Garante que a linha seja marcada como não produzindo, mesmo se ocorrer um erro
         is_producing = False
