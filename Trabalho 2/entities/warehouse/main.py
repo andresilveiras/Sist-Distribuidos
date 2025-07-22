@@ -9,6 +9,11 @@ inventory = {
     part_name: Buffer(part_name, max_capacity=100, yellow_level=50, red_level=25)
     for part_name in ALL_PARTS
 }
+
+# Define o tempo de cooldown para novos pedidos no nível crítico para evitar que o estoque fique sem peças
+last_restock_time = {part_name: 0 for part_name in ALL_PARTS}
+RESTOCK_COOLDOWN = 5
+
 # Dicionário para controlar se um pedido de reabastecimento já foi feito para uma peça.
 restock_ordered = {part_name: False for part_name in ALL_PARTS}
 
@@ -66,10 +71,12 @@ def on_message(client, userdata, msg):
 
             # Se o estoque estiver vermelho, faz uma nova solicitação de reabastecimento sem restrição, para evitar que o estoque fique sem peças
             if buffer.status == "VERMELHO":
-                print(f"[WAREHOUSE] NÍVEL CRÍTICO DE '{part_name}'. Fazendo nova solicitação.")
-                restock_batch_size = PART_BATCH_SIZES[part_name]
-                client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
-                time.sleep(5)
+                now = time.time()
+                if now - last_restock_time[part_name] >= RESTOCK_COOLDOWN:
+                    print(f"[WAREHOUSE] NÍVEL CRÍTICO DE '{part_name}'. Fazendo nova solicitação.")
+                    restock_batch_size = PART_BATCH_SIZES[part_name]
+                    client.publish("estoque/reabastecer", f"{part_name}:{restock_batch_size}")
+                    last_restock_time[part_name] = now
 
             if buffer.status == "VERDE":
                 restock_ordered[part_name] = False
